@@ -33,21 +33,14 @@ Your Answer:
 
 QA_PROMPT = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def invoke_question(model: str, question: str, chat_history: list[ChatMessage]) -> str:
-  logger.info(f"langchain: {langchain.__version__}, model: {model}")
-
-  llm = ChatOllama(
-    base_url="http://host.docker.internal:11434",
-    model=model, 
-    temperature=0,
-    num_ctx=4096
-  )
+async def invoke_question(llm, question: str, chat_history: list[ChatMessage]) -> str:
+  logger.info(f"langchain: {langchain.__version__}")
 
   history = [m.to_base_message() for m in chat_history]
   
   prompt = await contextualize_prompt(llm=llm,
-                                input=question,
-                                chat_history=history)
+                                      input=question,
+                                      chat_history=history)
   
   chain = QA_PROMPT | llm | StrOutputParser()
 
@@ -62,4 +55,4 @@ async def invoke_question(model: str, question: str, chat_history: list[ChatMess
   })
 
   logger.info(f"Result:\n{result}")
-  return result
+  return (prompt, result)
