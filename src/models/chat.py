@@ -22,3 +22,9 @@ class ChatMessage(BaseModel):
     elif self.role == "system":
       return SystemMessage(content=self.content)
     raise TypeError(f"Unsupported type: {self.role}")
+
+class ChatFile(BaseModel):
+  file_id: int
+  session_id: UUID
+  source: str
+  created_at: str

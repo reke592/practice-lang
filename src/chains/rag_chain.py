@@ -7,6 +7,8 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from models.chat import ChatMessage
 from utils.chat import history_as_turns, formatted_turns
+from infra.vector_store import retrieve_documents
+from uuid import UUID
 
 logger = getLogger(__name__)
 
@@ -19,9 +21,6 @@ You are a helpful AI assistant. Use the following context to answer the user's q
 Context: 
 {context}
 
-History: 
-{chat_history}
-
 Query:
 {input}
 <|im_end|>
@@ -33,7 +32,7 @@ Your Answer:
 
 QA_PROMPT = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def invoke_question(llm, question: str, chat_history: list[ChatMessage]) -> str:
+async def invoke_question(llm, session_id: UUID, question: str, chat_history: list[ChatMessage]) -> str:
   logger.info(f"langchain: {langchain.__version__}")
 
   history = [m.to_base_message() for m in chat_history]
@@ -47,10 +46,14 @@ async def invoke_question(llm, question: str, chat_history: list[ChatMessage]) -
   logger.info("including the whole chat history as reference..")
   formatted_chat_history = formatted_turns(history_as_turns(history))
 
-  logger.info(f"Invoking prompt..")
+  logger.info("retrieving documents")
+  context = retrieve_documents(session_id=session_id, query=prompt)
+  for doc in context:
+    logger.info(f"source: {doc.metadata['source']}")
+    
   result = await chain.ainvoke({
     "input": prompt, 
-    "context": "", 
+    "context": "\n\n".join([doc.page_content for doc in context]), 
     "chat_history": "\n\n".join(formatted_chat_history)
   })
 

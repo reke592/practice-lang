@@ -17,5 +17,4 @@ class ChatResponse(BaseModel):
 
 class ChatHistory(BaseModel):
   session_id: UUID
-  topic: str
   messages: List[ChatMessage] = []
