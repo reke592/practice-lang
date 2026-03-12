@@ -29,6 +29,6 @@ async def summary_history_prompt(llm, chat_history: list[BaseMessage], num_words
   logger.info(f"History: {len(chat_history)}")
   summary = await contextual_chain.ainvoke({"chat_history": chat_history, "num_words": num_words})
 
-  logger.info(f"Summary: {summary}")
+  logger.info(f"Summary: {summary[:60]}...")
 
   return summary

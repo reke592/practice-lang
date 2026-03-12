@@ -2,75 +2,59 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage
 from utils.logger import getLogger
-from chains.filter_chain import filter_prompt
+from chains.summarizer_chain import summary_history_prompt
 
 logger = getLogger(__name__)
 
-# TEMPLATE="""
-# <system>
-# Given a chat history and the latest user question 
-# which might reference context in the chat history, 
-# formulate a standalone question which can be undertood 
-# without the chat history. Do NOT answer the question, 
-# just reformulate it if needed and otherwise return it as is.
-# </system>
-
-# <history>
-# {chat_history}
-# </history>
-
-# <current_user_query>
-# {input}
-# </current_user_query>
-
-# Final Standalone Question: 
-# """.strip()
 TEMPLATE="""
 <|im_start|>system
-Given a chat history and the latest user question 
-which might reference context in the chat history, 
-formulate a standalone question which can be undertood 
-without the chat history. Do NOT answer the question, 
-just reformulate it if needed and otherwise return it as is.
+You are a retrieval assistant. 
+TASK: Formulate a standalone question based on summary.
+RULE: 
+- Output ONLY the reformulated question. DO NOT answer it. 
+- If [No previous chat summary], proofread the question.
 <|im_end|>
-
 <|im_start|>user
-HISTORY:
-{chat_history}
+SUMMARY:
+{summary}
 
 QUERY:
 {input}
 <|im_end|>
-
 <|im_start|>assistant
-Final Standalone Question: 
+REFORMULATED:
 """.strip()
 
 CONTEXTUALIZE_Q_TEMPLATE = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def contextualize_prompt(llm, input: str, chat_history: list[BaseMessage], turn_count=3, window_size=8) -> str:
+async def contextualize_prompt(llm, input: str, chat_history: list[BaseMessage]) -> tuple[str,str]:
   """
   Use llm to enhance the context of input prompt based on given chat_history.
   """
 
-  logger.info(f"enhancing the context of user input based on chat history. window_size: {window_size}, turn_count: {turn_count}")
+  logger.info(f"enhancing the context of user input based on chat history.")
 
-  # identify relevant history
-  relevant_history = await filter_prompt(llm=llm,
-                                         input=input,
-                                         chat_history=chat_history,
-                                         turn_count=turn_count,
-                                         window_size=window_size)
-
+  # summarize the previous chat history
+  if chat_history:
+    summary = await summary_history_prompt(llm=llm, chat_history=chat_history)
+  else:
+    summary = "[No previous chat summary]"
   
   # build the context enhancer chain
   contextual_chain = CONTEXTUALIZE_Q_TEMPLATE | llm | StrOutputParser()
-
+  
+  payload = {
+    "input": input, 
+    "summary": summary #"\n\n".join(chat_messages)
+  }
+  
+  logger.info({
+    "input": f"{input[:60]}...",
+    "summary": f"{summary[:60]}..."
+  })
+  
   # enhance the user input using the recent chat history
-  contextual_q_prompt = await contextual_chain.ainvoke({
-      "input": input, 
-      "chat_history": relevant_history #"\n\n".join(chat_messages)
-    })
+  contextual_q_prompt = await contextual_chain.ainvoke(payload)
 
   logger.info(f"Original input: {input}")
   logger.info(f"Enhanced input: {contextual_q_prompt}")

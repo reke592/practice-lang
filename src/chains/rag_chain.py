@@ -3,6 +3,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from utils.logger import getLogger
 from chains.contextual_chain import contextualize_prompt
+from chains.filter_chain import NO_HISTORY_DATA
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from models.chat import ChatMessage
@@ -18,10 +19,10 @@ You are a helpful AI assistant. Use the following context to answer the user's q
 <|im_end|>
 
 <|im_start>user
-Context: 
+### CONTEXT
 {context}
 
-Query:
+### USER QUESTION
 {input}
 <|im_end|>
 
@@ -35,6 +36,7 @@ QA_PROMPT = ChatPromptTemplate.from_template(TEMPLATE)
 async def invoke_question(llm, session_id: UUID, question: str, chat_history: list[ChatMessage]) -> str:
   logger.info(f"langchain: {langchain.__version__}")
 
+  logger.info("include chat history as reference..")
   history = [m.to_base_message() for m in chat_history]
   
   prompt = await contextualize_prompt(llm=llm,
@@ -43,19 +45,18 @@ async def invoke_question(llm, session_id: UUID, question: str, chat_history: li
   
   chain = QA_PROMPT | llm | StrOutputParser()
 
-  logger.info("including the whole chat history as reference..")
-  formatted_chat_history = formatted_turns(history_as_turns(history))
 
   logger.info("retrieving documents")
-  context = retrieve_documents(session_id=session_id, query=prompt)
+  context = retrieve_documents(session_id=session_id, query=prompt) if session_id else []
   for doc in context:
     logger.info(f"source: {doc.metadata['source']}")
-    
-  result = await chain.ainvoke({
+
+  payload = {
     "input": prompt, 
-    "context": "\n\n".join([doc.page_content for doc in context]), 
-    "chat_history": "\n\n".join(formatted_chat_history)
-  })
+    "context": "\n\n".join([doc.page_content for doc in context]) if context else "[No context data]"
+  }
+
+  result = await chain.ainvoke(payload)
 
   logger.info(f"Result:\n{result}")
   return (prompt, result)

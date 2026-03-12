@@ -6,12 +6,12 @@ from uuid import UUID
 
 class Chat(BaseModel):
   session_id: Optional[UUID] = None
-  model: str = "qwen2.5-coder:3b"
+  model: str = "qwen3:4b-instruct"
   message: str
 
 class ChatResponse(BaseModel):
   session_id: UUID
-  model: str = "qwen2.5-coder:3b"
+  model: str = "qwen3:4b-instruct"
   response: str
   timestamp: datetime
 
