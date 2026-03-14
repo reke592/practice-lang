@@ -1,13 +1,11 @@
 import langchain
-from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from utils.logger import getLogger
 from chains.contextual_chain import contextualize_prompt
-from chains.filter_chain import NO_HISTORY_DATA
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from models.chat import ChatMessage
-from utils.chat import history_as_turns, formatted_turns
+from utils.llm import compute_confidence
 from infra.vector_store import retrieve_documents
 from uuid import UUID
 
@@ -43,8 +41,7 @@ async def invoke_question(llm, session_id: UUID, question: str, chat_history: li
                                       input=question,
                                       chat_history=history)
   
-  chain = QA_PROMPT | llm | StrOutputParser()
-
+  chain = QA_PROMPT | llm | compute_confidence
 
   logger.info("retrieving documents")
   context = retrieve_documents(session_id=session_id, query=prompt) if session_id else []
@@ -56,7 +53,9 @@ async def invoke_question(llm, session_id: UUID, question: str, chat_history: li
     "context": "\n\n".join([doc.page_content for doc in context]) if context else "[No context data]"
   }
 
-  result = await chain.ainvoke(payload)
-
-  logger.info(f"Result:\n{result}")
+  response = await chain.ainvoke(payload)
+  result = StrOutputParser().invoke(response)
+  color_start='\033[32m'
+  color_end='\033[0m'
+  logger.info(f"Result:\n{color_start}{result}{color_end}")
   return (prompt, result)
