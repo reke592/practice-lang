@@ -3,13 +3,14 @@ from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from utils.logger import getLogger
 from langchain_core.messages import AIMessage
+from utils.environment import LLAMA_URL
 
 logger = getLogger(__name__)
 
 def init_model(model: str):
   logger.info(f"model: {model}")
   return ChatOpenAI(
-    base_url="http://host.docker.internal:11434/v1",
+    base_url=f"{LLAMA_URL}/v1",
     api_key="ollama", # type: ignore
     model=model, 
     temperature=0,

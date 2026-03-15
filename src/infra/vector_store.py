@@ -10,7 +10,7 @@ from langchain_classic.retrievers import ContextualCompressionRetriever
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from flashrank import Ranker
 from pathlib import Path
-from utils.environment import DATA_DIR, TEMP_DIR
+from utils.environment import DATA_DIR, TEMP_DIR, LLAMA_URL, RANKER_MODEL, LLAMA_EMBED_MODEL
 
 UPLOADS_DIR=Path(f"{DATA_DIR}/session_files")
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -20,8 +20,8 @@ _TEMP_DIR.mkdir(exist_ok=True)
 
 logger=getLogger(__name__)
 
-embedding_func = OllamaEmbeddings(model="nomic-embed-text", base_url="http://host.docker.internal:11434")
-flashrank_client = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir=str(_TEMP_DIR))
+embedding_func = OllamaEmbeddings(model=LLAMA_EMBED_MODEL, base_url=LLAMA_URL)
+flashrank_client = Ranker(model_name=RANKER_MODEL, cache_dir=str(_TEMP_DIR))
 compressor = FlashrankRerank(client=flashrank_client, top_n=3)
 
 VS_CHAT_FILES="chat_files"
@@ -30,7 +30,7 @@ VS_CHAT_FILES="chat_files"
 _chat_files = Chroma(
   collection_name=VS_CHAT_FILES, # Keep a consistent name
   embedding_function=embedding_func,
-  persist_directory="var/chroma"
+  persist_directory=f"{DATA_DIR}/chroma"
 )
 
 text_splitter = RecursiveCharacterTextSplitter(
