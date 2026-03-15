@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solar System</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+      color: white;
+      user-select: none;
+    }
+
+    #solar-system {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      cursor: grab;
+    }
+
+    .planet {
+      position: absolute;
+      border-radius: 50%;
+      transform-origin: center;
+      transition: transform 0.1s ease;
+    }
+
+    .planet::after {
+      content: attr(data-name);
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      background: rgba(0,0,0,0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .sun {
+      background: radial-gradient(circle at 50% 50%, #ffcc00, #ffaa00);
+      box-shadow: 0 0 50px #ffcc00, 0 0 100px #ffaa00;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 100;
+    }
+
+    .controls button {
+      margin: 5px;
+      padding: 8px 12px;
+      background: #333;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .controls button:hover {
+      background: #555;
+    }
+
+    .zoom-in, .zoom-out {
+      background: #0077ff;
+    }
+
+    .zoom-in:hover, .zoom-out:hover {
+      background: #0055cc;
+    }
+  </style>
+</head>
+<body>
+  <div id="solar-system">
+    <div class="sun"></div>
+    <!-- Planets will be added dynamically -->
+  </div>
+
+  <div class="controls">
+    <button class="zoom-in" onclick="zoom(1.1)">Zoom In</button>
+    <button class="zoom-out" onclick="zoom(0.9)">Zoom Out</button>
+    <button onclick="resetView()">Reset View</button>
+  </div>
+
+  <script>
+    // Planet data: { name, radius, distance, orbitSpeed, color }
+    const planets = [
+      { name: "Mercury", radius: 4, distance: 100, orbitSpeed: 0.02, color: "#a0a0a0" },
+      { name: "Venus", radius: 8, distance: 150, orbitSpeed: 0.015, color: "#ffcc00" },
+      { name: "Earth", radius: 10, distance: 200, orbitSpeed: 0.01, color: "#00aaff" },
+      { name: "Mars", radius: 6, distance: 250, orbitSpeed: 0.008, color: "#ff5500" },
+      { name: "Jupiter", radius: 30, distance: 350, orbitSpeed: 0.005, color: "#ffaa00" },
+      { name: "Saturn", radius: 25, distance: 450, orbitSpeed: 0.003, color: "#ffcc00" },
+      { name: "Uranus", radius: 18, distance: 550, orbitSpeed: 0.002, color: "#aaffff" },
+      { name: "Neptune", radius: 16, distance: 650, orbitSpeed: 0.001, color: "#00aaff" }
+    ];
+
+    let centerX = window.innerWidth / 2;
+    let centerY = window.innerHeight / 2;
+    let scale = 1;
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    const solarSystem = document.getElementById("solar-system");
+    const sun = document.querySelector(".sun");
+
+    // Create planet elements
+    function createPlanets() {
+      solarSystem.innerHTML = "";
+      solarSystem.appendChild(sun);
+
+      planets.forEach(planet => {
+        const el = document.createElement("div");
+        el.className = "planet";
+        el.style.width = `${planet.radius}px`;
+        el.style.height = `${planet.radius}px`;
+        el.style.background = planet.color;
+        el.style.left = `${centerX}px`;
+        el.style.top = `${centerY}px`;
+        el.setAttribute("data-name", planet.name);
+        solarSystem.appendChild(el);
+      });
+    }
+
+    // Update planet positions
+    function updatePlanets() {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      planets.forEach(planet => {
+        const angle = (Date.now() * planet.orbitSpeed) / 1000;
+        const x = centerX + Math.cos(angle) * (planet.distance * scale);
+        const y = centerY + Math.sin(angle) * (planet.distance * scale);
+
+        const el = solarSystem.querySelector(`.planet[data-name="${planet.name}"]`);
+        if (el) {
+          el.style.left = `${x}px`;
+          el.style.top = `${y}px`;
+        }
+      });
+    }
+
+    // Zoom function
+    function zoom(factor) {
+      scale *= factor;
+      scale = Math.max(0.1, Math.min(scale, 5)); // Clamp scale
+      updatePlanets();
+    }
+
+    // Reset view
+    function resetView() {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      updatePlanets();
+    }
+
+    // Mouse events for pan
+    solarSystem.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - centerX;
+      offsetY = e.clientY - centerY;
+    });
+
+    solarSystem.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        centerX = e.clientX - offsetX;
+        centerY = e.clientY - offsetY;
+        updatePlanets();
+      }
+    });
+
+    solarSystem.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    solarSystem.addEventListener("mouseleave", () => {
+      isDragging = false;
+    });
+
+    // Mouse wheel for zoom
+    solarSystem.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      zoom(1 + e.deltaY * -0.001); // Negative delta for zoom in
+    });
+
+    // Touch events for mobile
+    solarSystem.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      isDragging = true;
+      offsetX = touch.clientX - centerX;
+      offsetY = touch.clientY - centerY;
+    });
+
+    solarSystem.addEventListener("touchmove", (e) => {
+      if (isDragging) {
+        const touch = e.touches[0];
+        centerX = touch.clientX - offsetX;
+        centerY = touch.clientY - offsetY;
+        updatePlanets();
+      }
+    });
+
+    solarSystem.addEventListener("touchend", () => {
+      isDragging = false;
+    });
+
+    // Resize handler
+    window.addEventListener("resize", () => {
+      centerX = window.innerWidth / 2;
+      centerY = window.innerHeight / 2;
+      updatePlanets();
+    });
+
+    // Initialize
+    window.onload = () => {
+      createPlanets();
+      updatePlanets();
+      // Start animation loop
+      requestAnimationFrame(animate);
+    };
+
+    function animate() {
+      updatePlanets();
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>

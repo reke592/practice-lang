@@ -1,0 +1,2 @@
+- ⬛ Add support image file to be used in RAG, use qwen3-vl:4b-instruct
+- ⬛ MCP server
