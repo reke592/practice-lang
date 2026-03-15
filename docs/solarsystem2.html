@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Solar System Explorer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 16px;
+      pointer-events: none;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 8px;
+    }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      color: white;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Solar System Explorer</div>
+  <div id="controls">
+    <button id="toggle">Toggle Animation</button>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // Initialize scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000);
+    document.body.appendChild(renderer.domElement);
+
+    // Add orbit controls for user interaction
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Set camera position
+    camera.position.z = 50;
+
+    // Create Sun
+    const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+    const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    scene.add(sun);
+
+    // Planets data (name, radius, color, orbit radius, orbit period)
+    const planets = [
+      { name: "Mercury", radius: 0.5, color: 0x888888, orbitRadius: 10, period: 10 },
+      { name: "Venus", radius: 1.0, color: 0xffcc88, orbitRadius: 15, period: 20 },
+      { name: "Earth", radius: 1.2, color: 0x00aaff, orbitRadius: 20, period: 30 },
+      { name: "Mars", radius: 0.8, color: 0xff5555, orbitRadius: 25, period: 40 },
+      { name: "Jupiter", radius: 3.0, color: 0xffaa00, orbitRadius: 35, period: 60 },
+      { name: "Saturn", radius: 2.5, color: 0xffcc00, orbitRadius: 45, period: 80 },
+      { name: "Uranus", radius: 1.8, color: 0x88ccff, orbitRadius: 55, period: 100 },
+      { name: "Neptune", radius: 1.6, color: 0x0088ff, orbitRadius: 65, period: 120 }
+    ];
+
+    // Create planet objects
+    const planetObjects = [];
+    planets.forEach(planet => {
+      const geometry = new THREE.SphereGeometry(planet.radius, 32, 32);
+      const material = new THREE.MeshBasicMaterial({ color: planet.color });
+      const planetMesh = new THREE.Mesh(geometry, material);
+      planetMesh.position.set(planet.orbitRadius, 0, 0);
+      scene.add(planetMesh);
+
+      // Add orbit path (ring)
+      const orbitGeometry = new THREE.RingGeometry(planet.orbitRadius, planet.orbitRadius + 0.1, 32);
+      const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+      const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
+      orbit.rotation.x = Math.PI / 2;
+      scene.add(orbit);
+
+      planetObjects.push({
+        mesh: planetMesh,
+        orbit: orbit,
+        radius: planet.orbitRadius,
+        period: planet.period
+      });
+    });
+
+    // Animation variables
+    let animationTime = 0;
+    let isAnimating = true;
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (isAnimating) {
+        animationTime += 0.01;
+
+        // Update planet positions
+        planetObjects.forEach(planet => {
+          const angle = (animationTime * 2 * Math.PI) / planet.period;
+          const x = planet.radius * Math.cos(angle);
+          const z = planet.radius * Math.sin(angle);
+          planet.mesh.position.set(x, 0, z);
+        });
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Toggle animation
+    document.getElementById("toggle").addEventListener("click", () => {
+      isAnimating = !isAnimating;
+      document.getElementById("toggle").textContent = isAnimating ? "Pause" : "Resume";
+    });
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window-than-height);
+    });
+
+    // Start animation
+    animate();
+  </script>
+</body>
+</html>

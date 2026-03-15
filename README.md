@@ -51,6 +51,36 @@ INFO:httpx:HTTP Request: POST http://host.docker.internal:11434/v1/chat/completi
 ![](./docs/solarsystem.gif)
 
 
+**Generation Time:** ~1m,18s  
+**LLModel:** qwen3:4b-instruct  
+**Original Input:** "create a solar system explorer using HTML, CSS and Javascript, use javascript libraries for the 3d animation"  
+**Enhanced Input:** "Create a solar system explorer using HTML, CSS, and JavaScript, with 3D animation achieved through JavaScript libraries."  
+**Output:** [solarsystem2.html](./docs/solarsystem2.html)  
+**Logs:**
+```
+2026-03-15 13:56:22 - INFO - api.chat - TODO: fetch the chat history to enhance the prompt and document retrieval
+2026-03-15 13:56:22 - INFO - infra.data_store - check_session_id 3fa85f64-5717-4562-b3fc-2c963f66afa6
+2026-03-15 13:56:22 - INFO - api.chat - resolved session_id: ca0fe794-fbe0-412b-bcd4-8a0e7b5b578b
+2026-03-15 13:56:22 - INFO - utils.llm - model: qwen3:4b-instruct
+2026-03-15 13:56:22 - INFO - chains.rag_chain - langchain: 1.2.10
+2026-03-15 13:56:22 - INFO - chains.rag_chain - include chat history as reference..
+2026-03-15 13:56:22 - INFO - chains.contextual_chain - enhancing the context of user input based on chat history.
+2026-03-15 13:56:22 - INFO - utils.chat - history_as_turns..
+2026-03-15 13:56:22 - INFO - utils.chat - formatted_turns..
+2026-03-15 13:56:22 - INFO - chains.contextual_chain - {'input': 'create a solar system explorer using HTML, CSS and Javascrip...', 'summary': '[No previous chat summary]...'}
+INFO:httpx:HTTP Request: POST http://host.docker.internal:11434/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-15 13:56:26 - INFO - utils.llm - confidence: 94.84467659256201
+2026-03-15 13:56:26 - INFO - chains.contextual_chain - Original input: create a solar system explorer using HTML, CSS and Javascript, use javascript libraries for the 3d animation
+2026-03-15 13:56:26 - INFO - chains.contextual_chain - Enhanced input: Create a solar system explorer using HTML, CSS, and JavaScript, with 3D animation achieved through JavaScript libraries.
+2026-03-15 13:56:26 - INFO - chains.rag_chain - retrieving documents
+2026-03-15 13:56:26 - INFO - infra.vector_store - retrieve_relevant_documents: ca0fe794-fbe0-412b-bcd4-8a0e7b5b578b
+INFO:httpx:HTTP Request: POST http://host.docker.internal:11434/api/embed "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://host.docker.internal:11434/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-15 13:57:40 - INFO - utils.llm - confidence: 90.5071675339105
+2026-03-15 13:57:40 - INFO - chains.rag_chain - Result:
+```
+![](./docs/solarsystem2.gif)
+
 ### API Process Flow
 
 ![](./docs/diagram.png)
