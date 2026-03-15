@@ -10,17 +10,18 @@ from langchain_classic.retrievers import ContextualCompressionRetriever
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from flashrank import Ranker
 from pathlib import Path
+from utils.environment import DATA_DIR, TEMP_DIR
 
-UPLOADS_DIR=Path("var/session_files")
+UPLOADS_DIR=Path(f"{DATA_DIR}/session_files")
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-TEMP_DIR=Path("tmp")
-TEMP_DIR.mkdir(exist_ok=True)
+_TEMP_DIR=Path(TEMP_DIR)
+_TEMP_DIR.mkdir(exist_ok=True)
 
 logger=getLogger(__name__)
 
 embedding_func = OllamaEmbeddings(model="nomic-embed-text", base_url="http://host.docker.internal:11434")
-flashrank_client = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir=str(TEMP_DIR))
+flashrank_client = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir=str(_TEMP_DIR))
 compressor = FlashrankRerank(client=flashrank_client, top_n=3)
 
 VS_CHAT_FILES="chat_files"

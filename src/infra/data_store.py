@@ -1,12 +1,14 @@
 import sqlite3
 from contextlib import contextmanager
+from utils.environment import DATA_DIR
 from utils.logger import getLogger
 from models.chat import ChatMessage, ChatSession, ChatFile
 from sqlite3 import Cursor
 from uuid import uuid4, UUID
 from datetime import datetime
 
-DB_FILE="var/data.db"
+
+DB_FILE=f"{DATA_DIR}/data.db"
 TBL_CHAT_SESSIONS="chat_sessions"
 TBL_CHAT_MESSAGES="chat_messages"
 TBL_CHAT_FILES="chat_files"

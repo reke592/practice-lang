@@ -9,5 +9,5 @@ if [ -f "$REQUIREMENTS_FILE" ]; then
 fi
 
 pushd ./src >/dev/null
-fastapi dev main.py
+python main.py
 popd >/dev/null

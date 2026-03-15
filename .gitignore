@@ -6,3 +6,4 @@ _practice
 docs/
 src/var
 src/tmp
+.env
