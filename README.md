@@ -6,8 +6,10 @@ This project use the following:
 
 - Langchain - for the orchestration
 - Ollama - to run the LLM model
-- FastAPI - to serve endpoints to interact with the LLM
 - qwen3:4b-instruct - LLM Chat model
+- FastAPI - to serve endpoints to interact with the LLM
+- ChromaDB - for vector storage
+- Sqlite3 - for data storage
 
 Machine specs:
 
