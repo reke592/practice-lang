@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from models.chat import ChatMessage
 from utils.llm import compute_confidence
-from infra.vector_store import retrieve_documents
+from infra.vector_store import retrieve_documents, retrieve_relevant_documents
 from uuid import UUID
 
 logger = getLogger(__name__)
@@ -31,7 +31,7 @@ Your Answer:
 
 QA_PROMPT = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def invoke_question(llm, session_id: UUID, question: str, chat_history: list[ChatMessage]) -> str:
+async def invoke_question(llm, session_id: UUID, question: str, chat_history: list[ChatMessage]) -> tuple[str, str]:
   logger.info(f"langchain: {langchain.__version__}")
 
   logger.info("include chat history as reference..")
@@ -44,9 +44,9 @@ async def invoke_question(llm, session_id: UUID, question: str, chat_history: li
   chain = QA_PROMPT | llm | compute_confidence
 
   logger.info("retrieving documents")
-  context = retrieve_documents(session_id=session_id, query=prompt) if session_id else []
-  for doc in context:
-    logger.info(f"source: {doc.metadata['source']}")
+  context = retrieve_relevant_documents(session_id=session_id, query=prompt) if session_id else []
+  # for doc in context:
+  #   logger.info(f"source: {doc.metadata['source']}")
 
   payload = {
     "input": prompt, 

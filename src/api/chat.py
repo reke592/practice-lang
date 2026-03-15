@@ -24,13 +24,14 @@ async def chat_message(chat: Chat) -> ChatResponse:
   is_new_session = False
   with get_cursor() as cursor:
     logger.info("TODO: fetch the chat history to enhance the prompt and document retrieval")
-    if check_session_id(chat.session_id, cursor):
+    if chat.session_id and check_session_id(chat.session_id, cursor):
       session_id = chat.session_id
       chat_history = get_chat_history(session_id=session_id,
                                       cursor=cursor)
     else:
       is_new_session = True
       chat_history = []
+      session_id = uuid4()
   logger.info(f"resolved session_id: {session_id}")
   llm = init_model(model=chat.model)
   prompt, response = await invoke_question(llm=llm,
@@ -49,7 +50,9 @@ async def chat_message(chat: Chat) -> ChatResponse:
   # update the session history
   with get_cursor() as cursor:
     if is_new_session:
-      session_id = create_session(title, cursor)
+      create_session(id=session_id, 
+                     topic=title or chat.message, 
+                     cursor=cursor)
     save_messages(session_id=session_id,
                   messages=messages,
                   cursor=cursor)

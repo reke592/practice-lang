@@ -78,11 +78,10 @@ def check_session_id(session_id: UUID, cursor: Cursor) -> bool:
   return result is not None
 
 
-def create_session(topic: str, cursor: Cursor) -> UUID:
+def create_session(id: UUID, topic: str, cursor: Cursor) -> UUID:
   f"""
   insert new record in {TBL_CHAT_SESSIONS} with the following topic and return the session_id
   """
-  id = uuid4()
   logger.info(f"create_session {id}, topic: {topic}")
   cursor.execute(f"""
                  INSERT INTO {TBL_CHAT_SESSIONS}(id, topic, created_at)
@@ -92,7 +91,7 @@ def create_session(topic: str, cursor: Cursor) -> UUID:
   return id
   
 
-def save_messages(session_id: UUID, messages: list[tuple[str,str]], cursor: Cursor):
+def save_messages(session_id: UUID, messages: list[dict], cursor: Cursor):
   f"""
   save new messages in history
   """
@@ -156,7 +155,7 @@ def delete_chat_session(session_id: UUID, cursor: Cursor):
   cursor.execute(f'DELETE FROM {TBL_CHAT_SESSIONS} WHERE `id`=?', param)
   
 
-def find_file_id(session_id: UUID, source: str, cursor: Cursor) -> int:
+def find_file_id(session_id: UUID, source: str, cursor: Cursor) -> dict:
   cursor.execute(f"""
                   SELECT file_id 
                   FROM {TBL_CHAT_FILES} 

@@ -2,6 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from utils.logger import getLogger
+from typing import Sequence
 
 logger = getLogger(__name__)
 
@@ -12,7 +13,7 @@ CONTEXTUALIZE_Q_TEMPLATE = ChatPromptTemplate.from_messages([
   ("human", "TASK: Summarize the whole conversation above in under {num_words} words which I can use to continue the conversation with different LLM models. Do not add any introductory or concluding remarks. Just the summary.")
 ])
 
-async def summary_history_prompt(llm, chat_history: list[BaseMessage], num_words: int = 100) -> str:
+async def summary_history_prompt(llm, chat_history: Sequence[BaseMessage], num_words: int = 100) -> str:
   """
   Use llm to enhance the context of question prompt based on given chat_history.
 

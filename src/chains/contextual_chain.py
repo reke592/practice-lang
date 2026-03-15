@@ -5,7 +5,7 @@ from utils.logger import getLogger
 from utils.llm import compute_confidence
 from utils.chat import history_as_turns, formatted_turns
 from chains.summarizer_chain import summary_history_prompt
-import re
+from typing import Sequence
 
 logger = getLogger(__name__)
 
@@ -37,7 +37,7 @@ REFORMULATED:
 
 CONTEXTUALIZE_Q_TEMPLATE = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def contextualize_prompt(llm, input: str, chat_history: list[BaseMessage]) -> tuple[str,str]:
+async def contextualize_prompt(llm, input: str, chat_history: Sequence[BaseMessage]) -> str:
   """
   Use llm to enhance the context of input prompt based on given chat_history.
   """

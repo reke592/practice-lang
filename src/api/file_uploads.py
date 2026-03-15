@@ -5,15 +5,14 @@ from pathlib import Path
 from pydantic import WithJsonSchema
 from typing import List, Annotated
 from models.chat import ChatFile
+from uuid import uuid4
+from infra.vector_store import UPLOADS_DIR
 import infra.vector_store as vector_store
 import infra.data_store as data_store
 import shutil
 import os
 
 logger = getLogger(__name__)
-
-UPLOADS_DIR=Path("var/session_files")
-UPLOADS_DIR.mkdir(exist_ok=True)
 
 router = APIRouter(
   tags=["chat"]
@@ -37,7 +36,8 @@ async def upload_chat_files(id:UUID, files: FilesParam=File(...)):
   result:List[ChatFile] = []
   session_id = str(id)
   for file in files:
-    dest = UPLOADS_DIR / session_id / file.filename
+    filename = file.filename or str(uuid4())
+    dest = UPLOADS_DIR / session_id / filename
     Path(os.path.dirname(dest)).mkdir(exist_ok=True)
     if os.path.exists(dest):
       os.unlink(dest)
@@ -45,8 +45,8 @@ async def upload_chat_files(id:UUID, files: FilesParam=File(...)):
       shutil.copyfileobj(file.file, buffer)
     
     with data_store.get_cursor() as cursor:
-      record=data_store.save_chat_file(session_id=session_id, 
-                                       source=file.filename, 
+      record=data_store.save_chat_file(session_id=id, 
+                                       source=filename, 
                                        cursor=cursor)
       vector_store.save_document(session_id=id,
                                  abspath=str(dest),

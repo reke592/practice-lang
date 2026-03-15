@@ -35,6 +35,7 @@ fastapi-cloud-cli==0.14.0
 fastar==0.8.0
 filelock==3.24.3
 filetype==1.2.0
+FlashRank==0.2.10
 flatbuffers==25.12.19
 frozenlist==1.8.0
 fsspec==2026.2.0

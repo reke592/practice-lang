@@ -1,9 +1,10 @@
 from langchain_core.messages import BaseMessage
 from utils.logger import getLogger
+from typing import Sequence
 
 logger = getLogger(__name__)
 
-def history_as_turns(chat_history: list[BaseMessage]) -> list[BaseMessage]:
+def history_as_turns(chat_history: Sequence[BaseMessage]) -> list[Sequence[BaseMessage]]:
   logger.info("history_as_turns..")
   if not len(chat_history):
     return []
@@ -21,13 +22,13 @@ def history_as_turns(chat_history: list[BaseMessage]) -> list[BaseMessage]:
   return turns
 
 
-def formatted_turns(turns: list[BaseMessage]) -> list:
+def formatted_turns(turns: list[Sequence[BaseMessage]]) -> list:
   logger.info("formatted_turns..")
   chat_messages = []
   for i, turn in enumerate(turns):
     formatted = []
     for message in turn:
-      content = message.content.replace('\n', '\\n')
+      content = message.content.replace('\n', '\\n') if message.content is str else message.content
       formatted.append(f"{message.type.upper()}: {content}")
     chat_messages.append(f"Turn {i + 1}:\n" + "\n".join(formatted))
   return chat_messages
