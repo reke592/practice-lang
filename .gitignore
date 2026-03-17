@@ -6,3 +6,10 @@ _practice
 src/var
 src/tmp
 .env
+.cache
+.vscode
+.copilot
+.local
+.vscode-server
+.dotnet
+.bash_history

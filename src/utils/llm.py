@@ -9,19 +9,20 @@ logger = getLogger(__name__)
 
 def init_model(model: str):
   logger.info(f"model: {model}")
-  return ChatOpenAI(
-    base_url=f"{LLAMA_URL}/v1",
+  return ChatOllama(
+    base_url=f"{LLAMA_URL}",
     api_key="ollama", # type: ignore
     model=model, 
     temperature=0,
     # num_ctx=4096,
-    logprobs=True,
-    top_logprobs=5,
-    # model_kwargs={
-    #   "num_ctx":4096
+    # logprobs=True,
+    # top_logprobs=5,
+    reasoning=False,
+    # client_kwargs={
+    #   "logprobs": True,
+    #   "top_logprobs": 5
     # }
   )
-
 
 def compute_confidence(response: AIMessage) -> AIMessage:
   response_metadata = response.response_metadata if response else None

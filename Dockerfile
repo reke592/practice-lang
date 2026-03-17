@@ -8,4 +8,4 @@ RUN mkdir -p /home/agentuser/bin \
   chown -R agentuser:agentuser /home/agentuser
 
 USER agentuser
-WORKDIR /home/agentuser/agent
+WORKDIR /home/agentuser

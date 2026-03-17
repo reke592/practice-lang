@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if ! [ -d "venv" ]; then
+  python -m venv venv
+  pip install spacy
+  python -m spacy download en_core_web_sm
+fi
+
 . ./venv/bin/activate
 
 REQUIREMENTS_FILE='requirements.txt'

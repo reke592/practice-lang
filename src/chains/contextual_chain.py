@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, trim_messages
 from utils.logger import getLogger
 from utils.llm import compute_confidence
 from utils.chat import history_as_turns, formatted_turns
@@ -37,7 +37,7 @@ REFORMULATED:
 
 CONTEXTUALIZE_Q_TEMPLATE = ChatPromptTemplate.from_template(TEMPLATE)
 
-async def contextualize_prompt(llm, input: str, chat_history: Sequence[BaseMessage]) -> str:
+async def contextualize_prompt(llm, input: str, chat_history: list[AIMessage|HumanMessage|SystemMessage]) -> str:
   """
   Use llm to enhance the context of input prompt based on given chat_history.
   """
@@ -51,9 +51,18 @@ async def contextualize_prompt(llm, input: str, chat_history: Sequence[BaseMessa
     summary = "[No previous chat summary]"
   
   # recent messages
-  turns = formatted_turns(history_as_turns(chat_history=chat_history))[-5:]
-
-  history = "\n\n".join(turns)
+  # turns = formatted_turns(history_as_turns(chat_history=chat_history))[-5:]
+  all_turns = chat_history + [HumanMessage(content=input)]
+  turns = trim_messages(
+    all_turns,
+    max_tokens=2500,
+    strategy="last",
+    token_counter=llm,
+    include_system=True,
+    start_on="human",
+    allow_partial=False
+  )
+  history = "\n\n".join(formatted_turns(history_as_turns(turns)))
 
   # build the context enhancer chain
   contextual_chain = CONTEXTUALIZE_Q_TEMPLATE | llm | compute_confidence

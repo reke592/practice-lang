@@ -15,4 +15,5 @@ if __name__=="__main__":
   uvicorn.run("main:app", 
               host=SERV_HOST, 
               port=SERV_PORT, 
-              reload=not IS_PROD)
+              reload=not IS_PROD,
+              reload_dirs=['src'])

@@ -23,7 +23,7 @@ async def chat_message(chat: Chat) -> ChatResponse:
   chat_history = []
   is_new_session = False
   with get_cursor() as cursor:
-    logger.info("TODO: fetch the chat history to enhance the prompt and document retrieval")
+    logger.info("fetch the chat history to enhance the prompt and document retrieval")
     if chat.session_id and check_session_id(chat.session_id, cursor):
       session_id = chat.session_id
       chat_history = get_chat_history(session_id=session_id,
