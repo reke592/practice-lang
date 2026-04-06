@@ -2,11 +2,11 @@ from dataclasses import dataclass
 from langgraph.graph import add_messages
 from typing_extensions import Annotated, TypedDict
 from langgraph.checkpoint.memory import InMemorySaver
-from utils.llm import init_model
+from utils.llm import init_gemini, init_ollama
 
 CHECKPOINTER = InMemorySaver()
-LLM = init_model("qwen3.5:4b")
-
+LLM = init_gemini()
+# LLM = init_ollama()
 
 def soul():
   """reads the content of sould.md for agent behavior"""

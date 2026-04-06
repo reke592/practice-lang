@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from pydantic import SecretStr
 
 load_dotenv()
 
@@ -19,3 +20,4 @@ LLAMA_EMBED_MODEL = os.environ.get("LLAMA_EMBED_MODEL", "nomic-embed-text")
 RANKER_MODEL = os.environ.get("RANKER_MODEL", "ms-marco-MiniLM-L-12-v2")
 RANKER_THRESHOLD = float(os.environ.get("RANKER_THRESHOLD", "0.9"))
 NUM_CTX = int(os.environ.get("NUM_CTX", "2048"))
+API_KEY = SecretStr(os.environ.get("API_KEY", "ollama"))

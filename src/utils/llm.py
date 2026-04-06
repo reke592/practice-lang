@@ -1,9 +1,11 @@
 import math
 from dataclasses import dataclass
+from langchain_openai import ChatOpenAI
+# from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from utils.logger import getLogger
 from langchain_core.messages import AIMessage
-from utils.environment import LLAMA_URL, NUM_CTX
+from utils.environment import LLAMA_URL, NUM_CTX, API_KEY
 from langgraph.checkpoint.memory import InMemorySaver
 
 @dataclass
@@ -13,11 +15,11 @@ class Context:
 
 logger = getLogger(__name__)
 
-def init_model(model: str):
+def init_ollama(model: str = "qwen3.5:4b"):
   logger.info(f"model: {model}")
   return ChatOllama(
     base_url=f"{LLAMA_URL}",
-    api_key="ollama", # type: ignore
+    api_key=API_KEY, # type: ignore
     model=model, 
     temperature=0,
     num_ctx=NUM_CTX,
@@ -29,6 +31,22 @@ def init_model(model: str):
     #   "top_logprobs": 5
     # }
   )
+
+def init_gemini(model: str = 'gemini-3.1-flash-lite-preview'):
+  logger.info(f"model: {model}")
+  return ChatOpenAI(
+    model=model,
+    api_key=API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+  )
+  # return ChatGoogleGenerativeAI(
+  #   model=model,
+  #   api_key=API_KEY,
+  #   temperature=0,
+  #   max_tokens=None,
+  #   timeout=None,
+  #   max_retries=2
+  # )
 
 def compute_confidence(response: AIMessage) -> AIMessage:
   response_metadata = response.response_metadata if response else None
