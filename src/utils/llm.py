@@ -1,9 +1,15 @@
 import math
+from dataclasses import dataclass
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 from utils.logger import getLogger
 from langchain_core.messages import AIMessage
-from utils.environment import LLAMA_URL
+from utils.environment import LLAMA_URL, NUM_CTX
+from langgraph.checkpoint.memory import InMemorySaver
+
+@dataclass
+class Context:
+  """Custom runtime context schema."""
+  user_id: str
 
 logger = getLogger(__name__)
 
@@ -14,7 +20,7 @@ def init_model(model: str):
     api_key="ollama", # type: ignore
     model=model, 
     temperature=0,
-    # num_ctx=4096,
+    num_ctx=NUM_CTX,
     # logprobs=True,
     # top_logprobs=5,
     reasoning=False,
@@ -41,3 +47,9 @@ def compute_confidence(response: AIMessage) -> AIMessage:
     response_metadata['confidence'] = confidence
   
   return response
+
+# let the model remember the conversation
+# CHECKPOINTER = InMemorySaver()
+
+# llm model
+# MODEL = init_model(model="qwen3.5:4b")

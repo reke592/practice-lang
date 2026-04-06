@@ -5,6 +5,7 @@ load_dotenv()
 
 def init_environment():
   os.environ["ONNXRUNTIME_EXECUTION_PROVIDERS"] = "CPUExecutionProvider"
+  os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # Hide GPUs to skip discovery
 
 ENV = os.environ.get("ENV", "dev").lower()
 IS_PROD = True if not ENV == "dev" else False
@@ -16,3 +17,5 @@ LLAMA_URL = os.environ.get("LLAMA_URL", "http://localhost:11434")
 LLAMA_CHAT_MODEL = os.environ.get("LLAMA_CHAT_MODEL", "qwen3.5:4b")
 LLAMA_EMBED_MODEL = os.environ.get("LLAMA_EMBED_MODEL", "nomic-embed-text")
 RANKER_MODEL = os.environ.get("RANKER_MODEL", "ms-marco-MiniLM-L-12-v2")
+RANKER_THRESHOLD = float(os.environ.get("RANKER_THRESHOLD", "0.9"))
+NUM_CTX = int(os.environ.get("NUM_CTX", "2048"))
