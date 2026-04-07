@@ -1,19 +1,38 @@
+import copy
 import math
 from dataclasses import dataclass
 from langchain_openai import ChatOpenAI
-# from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from utils.logger import getLogger
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from utils.environment import LLAMA_URL, NUM_CTX, API_KEY
 from langgraph.checkpoint.memory import InMemorySaver
+
+logger = getLogger(__name__)
 
 @dataclass
 class Context:
   """Custom runtime context schema."""
   user_id: str
 
-logger = getLogger(__name__)
+
+def GeminiToolAwareParser(message: AIMessage) -> AIMessage:
+  if hasattr(message,'tool_calls'):
+    # logger.info(f"hasattr(message,'tool_calls'): {hasattr(message,'tool_calls'):}")
+    if len(message.tool_calls) > 0:
+      return message
+  if hasattr(message, 'text'):
+    # logger.info(f"hasattr(message, 'text'): {hasattr(message, 'text'):}")
+    msg = copy.copy(message)
+    msg.content = message.text
+    return msg
+  if isinstance(getattr(message, 'content', None), list):
+    msg = copy.copy(message)
+    msg.content = " ".join([part['text'] for part in message.content if isinstance(part, dict) and 'text' in part])
+    return msg
+  return message
+  
 
 def init_ollama(model: str = "qwen3.5:4b"):
   logger.info(f"model: {model}")
@@ -32,21 +51,23 @@ def init_ollama(model: str = "qwen3.5:4b"):
     # }
   )
 
+
 def init_gemini(model: str = 'gemini-3.1-flash-lite-preview'):
   logger.info(f"model: {model}")
-  return ChatOpenAI(
-    model=model,
-    api_key=API_KEY,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-  )
-  # return ChatGoogleGenerativeAI(
+  # return ChatOpenAI(
   #   model=model,
   #   api_key=API_KEY,
-  #   temperature=0,
-  #   max_tokens=None,
-  #   timeout=None,
-  #   max_retries=2
+  #   base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
   # )
+  return ChatGoogleGenerativeAI(
+    model=model,
+    api_key=API_KEY,
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+  ) | GeminiToolAwareParser
+
 
 def compute_confidence(response: AIMessage) -> AIMessage:
   response_metadata = response.response_metadata if response else None
