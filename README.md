@@ -8,6 +8,10 @@ Machine specs:
 - 6GB VRAM (GeForce RTX 3060 Laptop GPU)
 - 32GB RAM
 
+### Main Goal
+
+The main goal of this project is to create a reliable system architecture for agentic workflow so that it can provide less hallucinated answers, relying based on facts and realtime data.
+
 ### TODO
 
 1. Research (RAG)
@@ -21,24 +25,7 @@ Key Feature: Implement "Source Citations" where the LLM must provide the exact p
 The Challenge: Handling "hallucinations" by making the agent cross-reference facts between different websites.
 ```
 
-2. Structured Data Extractor (JSON Agent)
+2. Escalation Engine Gateway
 ```
-Most LLM usage is conversational, but their power in industry lies in converting messy text into clean, structured data.
-The Concept: Create a tool where a user drops an image or text of a receipt, a medical report, or a legal contract.
-The Tech: Use Pydantic to define a schema and prompt the LLM to return strictly valid JSON.
-Project Goal: Build a dashboard that visualizes this extracted data (e.g., a personal finance tracker that parses receipts).
-```
-
-3. Multi-Modal Content Creator
-```
-Combine LLMs with other AI models to create a full content pipeline.
-The Concept: Input a short story idea. The LLM writes the script, then sends prompts to a text-to-image model (like Stable Diffusion) for illustrations, and a text-to-speech model for narration.
-The Result: An automated "Video Generator" or "AI Comic Book" creator.
-```
-
-4. Codebase "Janitor"
-```
-A tool designed specifically for developers to manage technical debt.
-The Concept: Point the tool at a GitHub repository. It scans the code for missing documentation, inefficient loops, or security vulnerabilities.
-The Twist: Instead of just pointing out errors, have the agent create a Pull Request with the suggested fixes.
+An agent designed to handle the client concerns initially before escalating it to real people. This agent will use the available Knowledge Base (KB) from QnA documentations and people-to-people conversations.
 ```

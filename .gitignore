@@ -11,3 +11,15 @@ _practice
 
 searxng/.env
 saerxng/core-config
+.copilot
+.local
+.vscode-server
+.dotnet
+.bash_history
+.ssh
+.ipython
+.lesshst
+.gitconfig
+
+tmp/
+var/
