@@ -20,3 +20,5 @@ saerxng/core-config
 .ipython
 .lesshst
 .gitconfig
+
+*.code-workspace
