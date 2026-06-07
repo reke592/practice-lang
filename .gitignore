@@ -20,6 +20,3 @@ saerxng/core-config
 .ipython
 .lesshst
 .gitconfig
-
-tmp/
-var/

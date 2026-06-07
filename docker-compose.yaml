@@ -27,15 +27,14 @@ services:
 #     volumes:
 #       - valkey-data:/data/
 
+#   chroma:
+#     image: chromadb/chroma:latest
+#     container_name: chroma
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./chroma_data:/data
+
 # volumes:
 #   core-data:
 #   valkey-data:
-
-  # Vector Database
-  # chroma:
-  #   image: chromadb/chroma:latest
-  #   container_name: chroma
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./chroma_data:/data

@@ -17,3 +17,6 @@ RUN useradd -m agentuser && \
 
 USER agentuser
 WORKDIR /home/agentuser/agent
+
+RUN mkdir -p var \
+    mkdir -p tmp

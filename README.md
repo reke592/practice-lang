@@ -8,6 +8,10 @@ Machine specs:
 - 6GB VRAM (GeForce RTX 3060 Laptop GPU)
 - 32GB RAM
 
+### LLM Model
+
+- Gemma4:e2b we will start the architectural design using this model then we will upgrade as the project grows.
+
 ### Main Goal
 
 The main goal of this project is to create a reliable system architecture for agentic workflow so that it can provide less hallucinated answers, relying based on facts and realtime data.
