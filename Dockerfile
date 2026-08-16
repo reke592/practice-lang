@@ -1,18 +1,9 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/* && \
   useradd -m agentuser
 
-# 2. Install Playwright Python package
-RUN pip install --no-cache-dir playwright
-
-# 3. Install the browser AND all missing system dependencies (The Fix)
-# This installs libgtk-3, libgdk-3, and all the .so files in your error log.
-RUN playwright install chromium --with-deps
-
-# 4. Setup your agent user
-RUN useradd -m agentuser && \
-    mkdir -p /home/agentuser/bin /home/agentuser/agent && \
+RUN mkdir -p /home/agentuser/bin /home/agentuser/agent/venv && \
     chown -R agentuser:agentuser /home/agentuser
 
 USER agentuser

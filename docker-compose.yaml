@@ -5,8 +5,25 @@ services:
       context: .
     volumes:
       - ./:/home/agentuser/agent
+      - /home/agentuser/agent/venv
     command: tail -f /dev/null
     network_mode: host
+
+  postgres:
+   # Using Postgres 17 with pgvector (the 2026 standard)
+   image: pgvector/pgvector:pg17
+   ports:
+     - "15432:5432"
+   environment:
+     - POSTGRES_USER=${POSTGRES_USER:-dev}
+     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
+     - POSTGRES_DB=practice_lang
+   volumes:
+     # Data persistence
+     - ./var/postgres_data:/var/lib/postgresql/data
+     # Optional: auto-enable extension on first start
+     - ./var/init.sql:/docker-entrypoint-initdb.d/init.sql
+   restart: unless-stopped
 
 #   searxng-core:
 #     container_name: searxng-core
