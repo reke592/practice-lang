@@ -1,0 +1,10 @@
+{
+  "dev": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "mcp/build/src/index.js"
+    ],
+    "env": {}
+  }
+}

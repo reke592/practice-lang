@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -6,12 +7,13 @@ from rich.panel import Panel
 import time
 
 from api.schemas.chat import ChatStreamChunk
-from api.services.chat import process_chat
+from api.services.chat import delete_chat_checkpoints, process_chat
 from environment import BUILD_COMMIT_ID
 from infrastructure.checkpointer.client import checkpointer_close, checkpointer_setup, get_checkpointer
 from utils.embeddings import embedding_func, compressor
 
 console = Console()
+mcp_code = "dev"
 
 def get_bot_response(user_input: str) -> str:
     # Replace this mock function with your LLM API call (e.g., OpenAI, Gemini, Ollama)
@@ -32,17 +34,39 @@ async def main():
         border_style="cyan"
     ))
 
+    with open ("mcp_config.json", "r") as fp:
+        mcp_config:dict[str,dict] = json.load(fp)
+
     while True:
         try:
-            user_input = console.input("\n[bold green]You:[/bold green] ")
+            global mcp_code
+            session_id = 'tui'
             interrupt_id = None
             response = None
-
-            if user_input.strip().lower() in ["exit", "quit"]:
+            user_input = console.input(
+                f"\n[bold green]You:[/bold green] " if not mcp_code
+                else f"\n[dim]({mcp_code})|[/dim][bold green]You:[/bold green] "
+            ).strip()
+            
+            if user_input.lower() in ["exit", "quit"]:
                 console.print("[yellow]Goodbye![/yellow]")
                 break
 
-            if not user_input.strip():
+            if user_input.lower().startswith("/mcp"):
+                args = user_input.split(" ")
+                if len(args) == 1:
+                    for i, v in mcp_config.items():
+                        console.print(f"[dim]{i} : {v.get('transport', "unknown")}[/dim]")
+                else:
+                    mcp_code = args[1]
+                continue
+
+            if user_input.lower() == "/clear":
+                await delete_chat_checkpoints(get_checkpointer(), session_id=session_id)
+                console.print("[dim]Chat memory has been cleared.[/dim]")
+                continue
+
+            if not user_input:
                 continue
 
             def on_yield(message: str, is_summary: bool, interrupt: str | None) -> ChatStreamChunk:
@@ -62,10 +86,10 @@ async def main():
                     compressor=compressor,
                     checkpointer=get_checkpointer(),
                     interrupt_id=interrupt_id,
-                    mcp_code="",
+                    mcp_code=mcp_code,
+                    mcp_config=mcp_config,
                     session_id="tui",
                     yield_formatter=on_yield,
-
                 ):
                     pass
                 

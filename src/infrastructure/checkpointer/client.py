@@ -16,7 +16,7 @@ _checkpointer_pool: AsyncConnectionPool[AsyncConnection[DictRow]] | None = None
 
 safe_serde = JsonPlusSerializer(
   allowed_msgpack_modules=[
-    ('agent.supervisor', 'McpSkill')
+    ('agent.schemas', 'MCPSkill')
   ]
 )
 

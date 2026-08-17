@@ -26,7 +26,7 @@ system_with_messages = ChatPromptTemplate.from_messages([
 
 
 @tool
-async def list_agents(query: str, runtime: ToolRuntime[Configuration, ChatState]):
+async def list_agents(runtime: ToolRuntime[Configuration, ChatState]):
   """Use this tool to list the available agents."""
   session = get_runtime_mcp_session(runtime.config)
 
@@ -42,11 +42,13 @@ async def list_agents(query: str, runtime: ToolRuntime[Configuration, ChatState]
     "|------|-------------|"
   ]
 
+  print(result.resources)
+
   for item in result.resources:
     mcp_skills.append(MCPSkill.model_validate({
       'name': item.name,
       'description': item.description,
-      'uri': item.uri
+      'uri': f"{item.uri}"
     }))
     content.append(f"| {item.name} | {item.description} |")
 
@@ -61,7 +63,7 @@ async def list_agents(query: str, runtime: ToolRuntime[Configuration, ChatState]
 @tool
 async def task(agent_name: str, task: str, runtime: ToolRuntime[Configuration, ChatState]):
   """Use this tool to delegate a task to an agent."""
-  skill = next((i for i in runtime.state['mcp_skills'] or [] if i.name == agent_name), None)
+  skill = next((i for i in runtime.state.get('mcp_skills', []) if i.name == agent_name), None)
 
   if not skill:
     return f"Agent {agent_name} not found. Please use the `list_agents` tool to see available agents."
@@ -121,7 +123,7 @@ async def task(agent_name: str, task: str, runtime: ToolRuntime[Configuration, C
 
   return Command(
     update={
-      'message': [
+      'messages': [
         ToolMessage(
           tool_call_id=runtime.tool_call_id,
           content=f"{result['final_answer'].content}\n\n**Generated Files:\n{generated_artifacts}" if generated_artifacts else result['final_answer'].content
@@ -182,21 +184,6 @@ async def supervisor_node(state: ChatState, config: RunnableConfig):
     'system': SYSTEM,
     'messages': state['messages']
   })
-
-  # handle empty response from supervisor
-  if not response.tool_calls and isinstance(response.content, str) and (response.content.startswith('<|tool_call') or not response.content):
-    response = AIMessage(
-      content=[
-        {
-          'type': 'thinking',
-          'thinking': f'I need to provide a response or call a tool. {response.content}'
-        },
-        {
-          'type': 'text',
-          'text': ''
-        }
-      ]
-    )
 
   return {
     'messages': [response]

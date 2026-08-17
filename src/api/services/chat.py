@@ -1,3 +1,4 @@
+import json
 from typing import Callable, List
 import warnings
 
@@ -13,6 +14,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langfuse import LangfuseSpan, get_client, propagate_attributes
 from langfuse.langchain import CallbackHandler
 from langgraph.types import Command
+from mcp import StdioServerParameters
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -41,12 +43,12 @@ console = Console()
 _yield_formatter = Callable[[str, bool, str | None], ChatStreamChunk]
 
 
-def get_composite_thread_id(tenant_uuid: str, hris_company_id: int, session_id: str):
-    return f"{tenant_uuid}:{hris_company_id}:{session_id}"
+def get_composite_thread_id(session_id: str):
+    return f"session:{session_id}"
 
 
-async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], tenant_uuid: str, hris_company_id: int, session_id: str):
-    thread_id = get_composite_thread_id(tenant_uuid=tenant_uuid, hris_company_id=hris_company_id, session_id=session_id)
+async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], session_id: str):
+    thread_id = get_composite_thread_id(session_id=session_id)
     await checkpointer.adelete_thread(thread_id=thread_id)
 
 
@@ -94,8 +96,6 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
                     if hasattr(latest_message, 'tool_call_id') and latest_message.tool_call_id:
                         yield yield_formatter("Processing records", False, None)
                         continue
-                    
-                    final_answer = latest_message.content
 
                     # text content
                     yield yield_formatter(latest_message.content, False, None)
@@ -107,13 +107,6 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
                 elif getattr(latest_message, 'tool_calls', None):
                     tools = [tc['name'] for tc in latest_message.tool_calls]
                     console.print(f"[dim]tools: {tools}[/dim]")
-
-    # log to console
-    console.print(Markdown(final_answer))
-
-    # --- SEND THE OUTPUT TO LANGFUSE ---
-    span.update(output={"final_answer": final_answer})
-    # --
     
 
 async def process_chat(
@@ -121,6 +114,7 @@ async def process_chat(
   session_id: str,
   embedding_func: Embeddings,
   compressor: BaseDocumentCompressor,
+  mcp_config: dict[str, Connection],
   mcp_code: str,
   yield_formatter: Callable[[str, bool, str | None], ChatStreamChunk],
   checkpointer: BaseCheckpointSaver[str],
@@ -147,24 +141,27 @@ async def process_chat(
                 'user_id': 'user_id'
             }
         ):
-
-            composite_thread_id = session_id
-            mcp_config : dict[str, Connection]= {
-                "coding": StreamableHttpConnection(
-                    transport='streamable_http',
-                    url= "http://coding/mcp",
-                    headers={
-                        'Authorization': f"Bearer token"
-                    },
-                    timeout=60
-                )
-            }
-
+            composite_thread_id = get_composite_thread_id(session_id=session_id)
+            # mcp_config : dict[str, Connection]= {
+            #     "coding": StreamableHttpConnection(
+            #         transport='streamable_http',
+            #         url= "http://coding/mcp",
+            #         headers={
+            #             'Authorization': f"Bearer token"
+            #         },
+            #         timeout=60
+            #     ),
+            #     "dev": StdioServerParameters(
+            #         command="node",
+            #         args="mcp/build/src/index.js",
+            #         env=None
+            #     )
+            # }
             mcp_client = MultiServerMCPClient(mcp_config)
 
             run_input = {
                 'images': [],
-                'messages': [HumanMessage(content=message.strip())],
+                'messages': [HumanMessage(content=[{'type': 'text', 'text': message.strip()}])],
             }
 
             if mcp_code in mcp_config:

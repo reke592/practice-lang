@@ -8,6 +8,7 @@ services:
     volumes:
       - ./:/workspace/agent:cached
       - /workspace/agent/venv
+      - /workspace/agent/mcp/node_modules
     command: tail -f /dev/null
     network_mode: host
 
