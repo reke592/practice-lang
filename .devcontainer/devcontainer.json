@@ -1,0 +1,30 @@
+{
+  "name": "Practice-Lang Dev Container",
+  "dockerComposeFile": ["../docker-compose.yaml"],
+  "service": "dev",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20",
+      "nodeGypDependencies": true
+    }
+  },
+  "remoteUser": "root",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+      "settings": {
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/venv/**": true
+        }
+      }
+    }
+  },
+  "containerEnv": {},
+  "postCreateCommand": "chmod +x agent/configure.sh && agent/configure.sh",
+  "postAttachCommand": "cd agent && . ./venv/bin/activate"
+}

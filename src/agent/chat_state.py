@@ -25,4 +25,4 @@ class WorkerState(TypedDict):
   last_tool_args: str | None
   """we use this to prevent the tool call loop"""
   final_answer: AIMessage | None
-  artifacts: Annotated[List[BaseMessage], add_messages]
+  artifacts: Annotated[List[BaseMessage], add_messages] 

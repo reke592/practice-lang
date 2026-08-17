@@ -1,11 +1,13 @@
 services:
   dev:
-    build:
-      dockerfile: Dockerfile
-      context: .
+    # build:
+    #   dockerfile: Dockerfile
+    #   context: .
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    working_dir: /workspace
     volumes:
-      - ./:/home/agentuser/agent
-      - /home/agentuser/agent/venv
+      - ./:/workspace/agent:cached
+      - /workspace/agent/venv
     command: tail -f /dev/null
     network_mode: host
 
