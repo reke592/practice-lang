@@ -1,18 +1,18 @@
 import asyncio
 import json
 
-from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-import time
+from rich.live import Live
+from rich.text import Text
 
 from api.schemas.chat import ChatStreamChunk
 from api.services.chat import delete_chat_checkpoints, process_chat
 from environment import BUILD_COMMIT_ID
 from infrastructure.checkpointer.client import checkpointer_close, checkpointer_setup, get_checkpointer
 from utils.embeddings import embedding_func, compressor
+from logger import console
 
-console = Console()
 mcp_code = "dev"
 
 def get_bot_response(user_input: str) -> str:
@@ -43,6 +43,7 @@ async def main():
             session_id = 'tui'
             interrupt_id = None
             response = None
+            user_input = None
             user_input = console.input(
                 f"\n[bold green]You:[/bold green] " if not mcp_code
                 else f"\n[dim]({mcp_code})|[/dim][bold green]You:[/bold green] "
@@ -69,29 +70,29 @@ async def main():
             if not user_input:
                 continue
 
-            def on_yield(message: str, is_summary: bool, interrupt: str | None) -> ChatStreamChunk:
-                nonlocal interrupt_id
-                nonlocal response
-                interrupt_id = interrupt
-                response = message
-                return ChatStreamChunk(message=message, summary=message if is_summary else '')
-
             # Display a spinner while waiting for the LLM
-            with console.status("[bold blue]Thinking...[/bold blue]"):
-                # time.sleep(1) # Simulate network request latency
-                # response = get_bot_response(user_input)
-                async for _ in process_chat(
-                    message=user_input.strip(),
-                    embedding_func=embedding_func,
-                    compressor=compressor,
-                    checkpointer=get_checkpointer(),
-                    interrupt_id=interrupt_id,
-                    mcp_code=mcp_code,
-                    mcp_config=mcp_config,
-                    session_id="tui",
-                    yield_formatter=on_yield,
-                ):
-                    pass
+            with Live(None, console=console, refresh_per_second=10, transient=True, screen=True) as live:
+                with console.status("[bold blue]Thinking...[/bold blue]\n") as status:
+                    def on_yield(message: str, is_summary: bool, interrupt: str | None) -> ChatStreamChunk:
+                        nonlocal interrupt_id
+                        nonlocal response
+                        interrupt_id = interrupt
+                        response = message if not is_summary else "\n\n".join(json.loads(message)['completed_tasks'])
+                        status.update(f"[dim]{response}[/dim]")
+                        return ChatStreamChunk(message=message, summary=message if is_summary else '')
+
+                    async for _ in process_chat(
+                        message=user_input.strip(),
+                        embedding_func=embedding_func,
+                        compressor=compressor,
+                        checkpointer=get_checkpointer(),
+                        interrupt_id=interrupt_id,
+                        mcp_code=mcp_code,
+                        mcp_config=mcp_config,
+                        session_id="tui",
+                        yield_formatter=on_yield,
+                    ):
+                        pass
                 
 
             # Render response as styled Markdown

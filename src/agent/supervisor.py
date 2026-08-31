@@ -37,12 +37,11 @@ async def list_agents(runtime: ToolRuntime[Configuration, ChatState]):
 
   mcp_skills: list[MCPSkill] = []
   content: list[str] = [
-    "Below are the available agents, use the `task` command to delegate a task to one of them."
     "| Name | Description |",
     "|------|-------------|"
   ]
 
-  print(result.resources)
+  # print(result.resources)
 
   for item in result.resources:
     mcp_skills.append(MCPSkill.model_validate({
@@ -62,7 +61,7 @@ async def list_agents(runtime: ToolRuntime[Configuration, ChatState]):
 
 @tool
 async def task(agent_name: str, task: str, runtime: ToolRuntime[Configuration, ChatState]):
-  """Use this tool to delegate a task to an agent."""
+  """Use this tool to delegate a task to available agent."""
   skill = next((i for i in runtime.state.get('mcp_skills', []) if i.name == agent_name), None)
 
   if not skill:
@@ -129,7 +128,8 @@ async def task(agent_name: str, task: str, runtime: ToolRuntime[Configuration, C
           content=f"{result['final_answer'].content}\n\n**Generated Files:\n{generated_artifacts}" if generated_artifacts else result['final_answer'].content
         )
       ],
-      'artifacts': tool_artifacts
+      'artifacts': tool_artifacts,
+      'worker_results': [result['final_answer']]
     }
   )
 
@@ -193,14 +193,19 @@ async def supervisor_node(state: ChatState, config: RunnableConfig):
 async def process_artifacts(state: ChatState, config: RunnableConfig):
   """Process response artifacts"""
 
-  if not state.get('tool_artifacts', []):
+  # let the orchestrator response reach the user interface
+  if not state.get('worker_results', []):
     return {
        'next': '__end__',
        'messages': []
     }
 
+  # replace override the orchestrator content using the concatenated worker results to preserve the original worker agent response
   artifacts = []
   last_message = state['messages'][-1]
+
+  # make sure we read the original worker response not the orchestrator
+  synthesized = "***".join([ m.content for m in state['worker_results'] if isinstance(m, AIMessage) ])
 
   for m in state.get('tool_artifacts', []):
     if isinstance(m.artifact, list):
@@ -211,7 +216,7 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
       artifacts.append(json.loads(m.artifact.get('resource')))
 
   json_output = json.dumps({
-    'completed_tasks': [f"{last_message.content}"],
+    'completed_tasks': [f"{synthesized}"],
     'artifacts': artifacts
   })
 
@@ -220,10 +225,11 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
     'tool_artifacts': [RemoveMessage(id=m.id) for m in state['artifacts'] if m.id],
     'messages': [
       # replace the supervisor response with tool artifacts
-      RemoveMessage(id=last_message.id or ''),
+      RemoveMessage(id=last_message.id),
       AIMessage(
-        content=last_message.content, # for the LLM to not break the conversation
-        kwargs={'json_output': json_output} # for the UI to display
+        id=last_message.id,
+        content=synthesized, # last_message.content, # for the LLM to not break the conversation
+        kwargs={'json_output': json_output} # we can use kwargs when using ChatOpenAI client
       )
     ]
   }
@@ -251,5 +257,5 @@ def init_graph():
   else:
     from infrastructure.checkpointer.client import get_checkpointer
     _supervisor_graph = supervisor_flow.compile(checkpointer=get_checkpointer())
-    _supervisor_graph.get_graph().draw_mermaid_png(output_file_path="./agent.supervisor.png")
+    # _supervisor_graph.get_graph().draw_mermaid_png(output_file_path="./agent.supervisor.png")
     return _supervisor_graph

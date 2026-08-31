@@ -5,6 +5,8 @@
     "args": [
       "mcp/build/src/index.js"
     ],
-    "env": {}
+    "env": {
+      "APP_ROOT_DIR": "/workspace/agent"
+    }
   }
 }

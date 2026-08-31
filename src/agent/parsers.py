@@ -9,7 +9,7 @@ def ToolAwareParser(message: AIMessage) -> AIMessage:
   if hasattr(message, 'usage_metadata') and message.usage_metadata:
     print(f"{COLOR_GREY}{message.usage_metadata}{COLOR_RESET}")
   
-  print(f"{COLOR_GREEN}{message}{COLOR_RESET}")
+  # print(f"{COLOR_GREEN}{message}{COLOR_RESET}")
   if hasattr(message,'tool_calls') and len(message.tool_calls) > 0:
     return message
   

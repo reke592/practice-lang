@@ -1,6 +1,10 @@
 import logging
 import sys
 
+from rich.console import Console
+
+console = Console()
+
 class CustomFormatter(logging.Formatter):
     teal = "\033[36m"
     yellow = "\033[33m"

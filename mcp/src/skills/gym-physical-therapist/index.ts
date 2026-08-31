@@ -2,21 +2,14 @@ import fsa from "fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 import path from "path";
 
-import * as calculateSumTool from "./tools/calculate-sum.js";
-import * as createFileTool from "./tools/create-file.js";
-
 export function register(server: McpServer) {
-  // tools
-  calculateSumTool.register(server);
-  createFileTool.register(server);
-
   // skill resource
   server.registerResource(
-    "coding",
-    "skills://coding",
+    "gym-physical-therapist",
+    "skills://gym-physical-therapist",
     {
-      title: "Coding Agent",
-      description: "Coding Task, Programming",
+      title: "Gym Phisical Therapist",
+      description: "Gym physical therapist agent for fitness-related injury management and prevention. Inputs should be user symptoms, current routines, or movement goals. Returns evidence-based advice on rehabilitation protocols, prehabilitation, corrective exercises, safe lifting mechanics, and recovery strategies.",
       mimeType: "text/plain",
     },
     async (uri, extra) => {

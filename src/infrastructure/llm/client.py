@@ -68,6 +68,11 @@ PROVIDERS = {
     'BALANCED': init_llm(provider="ollama", model="gemma4:e2b", thinking_level="medium", reasoning=True),
     'PRECISE': init_llm(provider="ollama", model="gemma4:e2b", thinking_level="high", reasoning=True),
   },
+  'gemma4:e4b': {
+    'FAST': init_llm(provider="ollama", model="gemma4:e4b", thinking_level="low", reasoning=False),
+    'BALANCED': init_llm(provider="ollama", model="gemma4:e4b", thinking_level="medium", reasoning=True),
+    'PRECISE': init_llm(provider="ollama", model="gemma4:e4b", thinking_level="high", reasoning=True),
+  },
   # 'google/gemma-4-E4B-it': {
   #   'FAST': init_llm(provider="openai", model="google/gemma-4-E4B-it", thinking_level="low", reasoning=False),
   #   'BALANCED': init_llm(provider="openai", model="google/gemma-4-E4B-it", thinking_level="medium", reasoning=True),

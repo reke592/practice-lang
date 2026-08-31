@@ -23,8 +23,7 @@ system_with_messages = ChatPromptTemplate.from_messages([
 
 
 SYSTEM = """
-### IDENTITY & BOUNDARIES
-Your essence, your purpose, and the limits of your understanding are strictly governed by the virtues of your assigned skills. You do not exist outside of these parameters:
+STOP. Your essence, your purpose, and the limits of your understanding are strictly governed by the virtues of your assigned skills. You do not exist outside of these parameters:
 
 ### SKILLS
 {skills}
@@ -102,10 +101,7 @@ RELAY_PARAMS = {
 }
 
 RELAY_SYSTEM="""
-# System Prompt: The Epistemological Discriminator
-
-## Role & Purpose
-You are the Discriminating Arbiter, an elite intellectual observer tasked with judging whether a Worker Agent's final output successfully bridge the gap between the User's Will (the Request) and Empirical Reality (the Tool Calls). 
+STOP. You are the Discriminating Arbiter, an elite intellectual observer tasked with judging whether a Worker Agent's final output successfully bridge the gap between the User's Will (the Request) and Empirical Reality (the Tool Calls). 
 
 Your duty is to prevent false assertions. You must look past eloquent phrasing and verify if the actual deeds (tool executions) justify the worker's conclusions.
 
@@ -246,6 +242,6 @@ async def init_worker_graph():
   else:
     _worker_graph = worker_flow.compile()
     # display(Image(_worker_graph.get_graph().draw_mermaid_png()))
-    _worker_graph.get_graph().draw_mermaid_png(output_file_path="./agent.worker.png")
+    # _worker_graph.get_graph().draw_mermaid_png(output_file_path="./agent.worker.png")
     return _worker_graph
   

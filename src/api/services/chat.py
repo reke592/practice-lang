@@ -15,8 +15,6 @@ from langfuse import LangfuseSpan, get_client, propagate_attributes
 from langfuse.langchain import CallbackHandler
 from langgraph.types import Command
 from mcp import StdioServerParameters
-from rich.console import Console
-from rich.markdown import Markdown
 
 from agent.chat_state import ChatState
 from agent.supervisor import init_graph as get_ai
@@ -24,6 +22,7 @@ from agent.configurables import ChatModels, Configuration
 from api.schemas.chat import ChatStreamChunk
 from environment import LLM_PROVIDER_MODEL, MAX_TOOL_RETRY
 from infrastructure.llm.client import PROVIDERS
+from logger import console
 
 # Suppress the specific pandas UserWarning about DBAPI2 objects
 warnings.filterwarnings(
@@ -38,7 +37,6 @@ langfuse = get_client()
 
 # Initialize Langfuse CallbackHandler for Langchain (tracing)
 langfuse_handler = CallbackHandler()
-console = Console()
 
 _yield_formatter = Callable[[str, bool, str | None], ChatStreamChunk]
 
@@ -94,7 +92,7 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
 
                     # when the graph receives a tool call response
                     if hasattr(latest_message, 'tool_call_id') and latest_message.tool_call_id:
-                        yield yield_formatter("Processing records", False, None)
+                        yield yield_formatter(latest_message.content, False, None)
                         continue
 
                     # text content
@@ -102,7 +100,7 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
 
                     # json content, this may includes artifact urls
                     if hasattr(latest_message, 'kwargs') and 'json_output' in latest_message.kwargs:
-                        yield yield_formatter(latest_message.kwargs['json_output'], False, None)
+                        yield yield_formatter(latest_message.kwargs['json_output'], True, None)
                     
                 elif getattr(latest_message, 'tool_calls', None):
                     tools = [tc['name'] for tc in latest_message.tool_calls]
@@ -162,6 +160,7 @@ async def process_chat(
             run_input = {
                 'images': [],
                 'messages': [HumanMessage(content=[{'type': 'text', 'text': message.strip()}])],
+                'worker_results': []
             }
 
             if mcp_code in mcp_config:

@@ -2,21 +2,14 @@ import fsa from "fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 import path from "path";
 
-import * as calculateSumTool from "./tools/calculate-sum.js";
-import * as createFileTool from "./tools/create-file.js";
-
 export function register(server: McpServer) {
-  // tools
-  calculateSumTool.register(server);
-  createFileTool.register(server);
-
   // skill resource
   server.registerResource(
-    "coding",
-    "skills://coding",
+    "gym-dietitian-nutritionist",
+    "skills://gym-dietitian-nutritionist",
     {
-      title: "Coding Agent",
-      description: "Coding Task, Programming",
+      title: "Gym Dietitian Nutritionist",
+      description: "Expert sports dietitian and nutritionist. Call this tool when users ask for custom meal plans, macro and calorie calculations, supplement advice, or dietary strategies tailored for muscle gain, fat loss, and athletic performance.",
       mimeType: "text/plain",
     },
     async (uri, extra) => {
