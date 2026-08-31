@@ -205,7 +205,7 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
   last_message = state['messages'][-1]
 
   # make sure we read the original worker response not the orchestrator
-  synthesized = "***".join([ m.content for m in state['worker_results'] if isinstance(m, AIMessage) ])
+  synthesized = "***".join([ m.content for m in state['worker_results'] ])
 
   for m in state.get('tool_artifacts', []):
     if isinstance(m.artifact, list):
@@ -222,9 +222,11 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
 
   return {
     'next': '__end__',
+    # clear for next turn
     'tool_artifacts': [RemoveMessage(id=m.id) for m in state['artifacts'] if m.id],
+    'worker_results': [RemoveMessage(id=m.id) for m in state['worker_results']],
+    # replace the supervisor response with tool artifacts
     'messages': [
-      # replace the supervisor response with tool artifacts
       RemoveMessage(id=last_message.id),
       AIMessage(
         id=last_message.id,

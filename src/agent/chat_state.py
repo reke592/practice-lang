@@ -1,4 +1,3 @@
-from operator import add
 from typing import Annotated, List, TypedDict
 
 from langchain.messages import ToolMessage
@@ -26,4 +25,4 @@ class ChatState(TypedDict):
   messages: Annotated[List[BaseMessage], add_messages]
   artifacts: Annotated[List[BaseMessage], add_messages]
   mcp_skills: List[MCPSkill] | None
-  worker_results: Annotated[List[WorkerState], add]
+  worker_results: Annotated[List[BaseMessage], add_messages]
