@@ -51,7 +51,7 @@ def get_runtime_max_tool_retry(runnable: RunnableConfig) -> int:
   configurable = runnable.get('configurable', {})
   return configurable.get('max_tool_retry', MAX_TOOL_RETRY)
 
-def get_runtime_model(runnable: RunnableConfig, speed: Literal['FAST', 'BALANCED', 'PRECISE'], params: dict | None = None, tools: List[BaseTool] | None = None) -> BaseChatModel:
+def get_runtime_model(runnable: RunnableConfig, speed: Literal['FAST', 'BALANCED', 'PRECISE'], params: dict | None = None, tools: List[BaseTool] | None = None, structured_output: type = None) -> BaseChatModel:
   configurable = runnable.get('configurable', {})
   options = cast(ChatModels, configurable.get('models'))
   model = options[speed]
@@ -59,7 +59,9 @@ def get_runtime_model(runnable: RunnableConfig, speed: Literal['FAST', 'BALANCED
   if (params):
     model = cast(BaseChatModel, model.bind(**params))
 
-  if (tools):
+  if (structured_output):
+    model = cast(BaseChatModel, model.with_structured_output(structured_output))
+  elif (tools):
     model = cast(BaseChatModel, model.bind_tools(tools))
 
   return model

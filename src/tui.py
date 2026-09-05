@@ -43,7 +43,7 @@ async def main():
             session_id = 'tui'
             interrupt_id = None
             response = None
-            user_input = None
+            user_input = ''
             user_input = console.input(
                 f"\n[bold green]You:[/bold green] " if not mcp_code
                 else f"\n[dim]({mcp_code})|[/dim][bold green]You:[/bold green] "
