@@ -1,6 +1,6 @@
 import json
 import re
-from typing import List, cast
+from typing import List, Literal, cast
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, RemoveMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -10,12 +10,13 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode, ToolRuntime, tools_condition
 from langgraph.types import interrupt, Command
 from mcp.types import TextResourceContents
+from pydantic import BaseModel, Field
 
 from agent.chat_state import ChatState
-from agent.configurables import Configuration, get_runtime_mcp_session, get_runtime_model
+from agent.configurables import Configuration, get_runtime_max_tool_retry, get_runtime_mcp_session, get_runtime_model
 from agent.middlewares import tool_call_middleware
 from agent.parsers import ToolAwareParser
-from agent.schemas import MCPSkill
+from agent.schemas import MCPSkill, generate_llm_schema
 from agent.worker import init_worker_graph
 
 
@@ -192,6 +193,66 @@ async def supervisor_node(state: ChatState, config: RunnableConfig):
   }
 
 
+RELAY_SYSTEM="""
+You are the Discriminating Arbiter, an elite intellectual observer tasked with judging whether the final output successfully bridge the gap between the User's Will (the Request) and Empirical Reality (the Tool Calls).
+""".strip()
+
+RELAY_PARAMS = {
+  "reasoning": False,
+  "temperature": 0.0,
+  "top_p": 0.8,
+  "min_p": 0,
+  "top_k": 30,
+  "max_tokens": 16384
+}
+
+class RelayOutput(BaseModel):
+  status: Literal['PASS', 'FAIL'] = Field(description="PASS | FAIL")
+  reasoning: str = Field(description="A concise, logical breakdown of your judgment. Reference specific tool outputs or gaps in the worker's response.")
+  remediation_instructions: str = Field(description="If FAIL, provide exact, actionable instructions on what the worker must correct, which tools it failed to use properly, or what data is missing.")
+
+async def relay_node(state: ChatState, config: RunnableConfig):
+  """the relay node who checks the worker output"""
+  model = get_runtime_model(config, 'FAST', RELAY_PARAMS)
+  llm = system_with_messages | model.with_structured_output(RelayOutput)
+
+  # consult the relay
+  response: RelayOutput = await llm.ainvoke({
+    'system': RELAY_SYSTEM.format(response_format=generate_llm_schema(RelayOutput)),
+    'messages': state['messages'][state['turn_checkpoint']:]
+  })
+
+  # route failure
+  if response.status == 'FAIL':
+    # guard max retry
+    retry_count = state['retry_count'] or 0
+    if retry_count == get_runtime_max_tool_retry(config):
+      return {
+        'next': '__error__',
+        'messages': [],
+        'final_answer': AIMessage(content=f"Unable to answer the task: {state['task']}. Max retry reached.")
+      }
+    else:
+      return {
+        'next': '__fail__',
+        'messages': [AIMessage(content=f"{response.reasoning}\n\n{response.remediation_instructions}")],
+        'retry_count': retry_count + 1
+      }
+
+  return {
+    'next': '__end__',
+    'messages': [],
+  }
+
+
+async def preprocess(state: ChatState, config: RunnableConfig):
+  """Preprocess the state before passing to the supervisor"""
+  return {
+    # mark the conversation turn for self-correction
+    'turn_checkpoint': len(state['messages']) - 1 if state.get('messages') else 0,
+    'messages': []
+  }
+
 async def process_artifacts(state: ChatState, config: RunnableConfig):
   """Process response artifacts"""
 
@@ -242,15 +303,23 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
 ## Supervisor Graph
 
 supervisor_flow = StateGraph(ChatState)
+supervisor_flow.add_node('preprocess', preprocess)
 supervisor_flow.add_node('supervisor', supervisor_node)
 supervisor_flow.add_node('tools', supervisor_tools)
+supervisor_flow.add_node('relay', relay_node)
 supervisor_flow.add_node('process_artifacts', process_artifacts)
-supervisor_flow.add_edge(START, 'supervisor')
+supervisor_flow.add_edge(START, 'preprocess')
+supervisor_flow.add_edge('preprocess', 'supervisor')
 supervisor_flow.add_conditional_edges('supervisor', tools_condition, {
   'tools': 'tools',
-  '__end__': 'process_artifacts'
+  '__end__': 'relay'
 })
 supervisor_flow.add_edge('tools', 'supervisor')
+supervisor_flow.add_conditional_edges('relay', lambda x: x['next'], {
+  '__fail__': 'supervisor',
+  '__end__': 'process_artifacts',
+  '__error__': END
+})
 supervisor_flow.add_edge('process_artifacts', END)
 
 _supervisor_graph = None
@@ -261,5 +330,5 @@ def init_graph():
   else:
     from infrastructure.checkpointer.client import get_checkpointer
     _supervisor_graph = supervisor_flow.compile(checkpointer=get_checkpointer())
-    # _supervisor_graph.get_graph().draw_mermaid_png(output_file_path="./agent.supervisor.png")
+    _supervisor_graph.get_graph().draw_mermaid_png(output_file_path="./agent.supervisor.png")
     return _supervisor_graph

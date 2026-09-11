@@ -242,6 +242,6 @@ async def init_worker_graph():
   else:
     _worker_graph = worker_flow.compile()
     # display(Image(_worker_graph.get_graph().draw_mermaid_png()))
-    # _worker_graph.get_graph().draw_mermaid_png(output_file_path="./agent.worker.png")
+    _worker_graph.get_graph().draw_mermaid_png(output_file_path="./agent.worker.png")
     return _worker_graph
   
