@@ -17,6 +17,7 @@ from langgraph.types import Command
 from mcp import StdioServerParameters
 
 from agent.chat_state import ChatState
+from utils.mcp import load_mcp_skills
 from agent.supervisor import init_graph as get_ai
 from agent.configurables import ChatModels, Configuration
 from api.schemas.chat import ChatStreamChunk
@@ -54,7 +55,7 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
     
     # start sending stream chunks
     async for chunk in get_ai().astream(
-        input=ChatState(**input) if not interrupt_id else Command(resume=input),
+        input=ChatState(**input) if not interrupt_id else Command(resume=input['messages'][0]),
         config=config,
         stream_mode="updates",
         subgraphs=True,
@@ -160,19 +161,23 @@ async def process_chat(
             run_input = {
                 'images': [],
                 'messages': [HumanMessage(content=[{'type': 'text', 'text': message.strip()}])],
-                'worker_results': []
+                'worker_results': [],
+                'retry_count': 0
             }
 
             if mcp_code in mcp_config:
                 async with mcp_client.session(mcp_code) as session:
                     # load MCP tools for config dependencies
                     mcp_tools = await load_mcp_tools(session) if session else [] 
+                    mcp_skills, mcp_skills_descriptions = await load_mcp_skills(session)
                     configurable = Configuration(
                         thread_id=composite_thread_id,
                         # MCP and document access
                         mcp_session=session,
                         mcp_client=mcp_client,
                         mcp_tools=mcp_tools,
+                        mcp_skills=mcp_skills,
+                        mcp_skills_descriptions=mcp_skills_descriptions,
                         max_tool_retry=MAX_TOOL_RETRY,
                         models=ChatModels(**PROVIDERS[provider]),
                         embedding_func=embedding_func,

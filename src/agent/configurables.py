@@ -8,6 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from mcp import ClientSession
 
+from agent.schemas import MCPSkill
 from environment import MAX_TOOL_RETRY
 
 
@@ -29,6 +30,8 @@ class Configuration(TypedDict):
   mcp_client: MultiServerMCPClient | None
   mcp_session: ClientSession | None
   mcp_tools: List[BaseTool] | None
+  mcp_skills: List[MCPSkill] | None
+  mcp_skills_descriptions: str
   max_tool_retry: int
   models: ChatModels
   embedding_func: Embeddings
@@ -46,6 +49,14 @@ def get_runtime_mcp_session(runnable: RunnableConfig) -> ClientSession | None:
 def get_runtime_mcp_tools(runnable: RunnableConfig) -> List[BaseTool]:
   configurable = runnable.get('configurable', {})
   return configurable.get('mcp_tools', [])
+
+def get_runtime_mcp_skills(runnable: RunnableConfig) -> List[MCPSkill]:
+  configurable = runnable.get('configurable', {})
+  return configurable.get('mcp_skills', [])
+
+def get_runtime_mcp_skills_descriptions(runnable: RunnableConfig) -> str:
+  configurable = runnable.get('configurable', {})
+  return configurable.get('mcp_skills_descriptions', "")
 
 def get_runtime_max_tool_retry(runnable: RunnableConfig) -> int:
   configurable = runnable.get('configurable', {})

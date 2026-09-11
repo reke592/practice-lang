@@ -5,12 +5,14 @@ from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.tools import tool
 from langgraph.graph import END, START, StateGraph
-from langgraph.prebuilt import ToolNode
+from langgraph.types import interrupt, Command
+from langgraph.prebuilt import ToolNode, ToolRuntime
 from pydantic import BaseModel, Field
 
 from agent.chat_state import WorkerState
-from agent.configurables import get_runtime_max_tool_retry, get_runtime_mcp_tools, get_runtime_model
+from agent.configurables import Configuration, get_runtime_max_tool_retry, get_runtime_mcp_tools, get_runtime_model
 from agent.middlewares import tool_call_middleware
 from agent.parsers import ToolAwareParser
 from agent.schemas import generate_llm_schema
@@ -20,6 +22,13 @@ system_with_messages = ChatPromptTemplate.from_messages([
   ('system', '{system}'),
   MessagesPlaceholder(variable_name='messages')
 ])
+
+
+@tool
+def human_input(question: str, runtime: ToolRuntime[Configuration, WorkerState]):
+  """Use this tool to get the user confirmation"""
+  value = interrupt(question)
+  return value
 
 
 SYSTEM = """
@@ -42,7 +51,7 @@ PARAMS = {
   "max_tokens": 16384
 }
 
-ALL_TOOLS: List[BaseTool] = []
+ALL_TOOLS: List[BaseTool] = [human_input]
 
 async def worker_node(state: WorkerState, config: RunnableConfig):
   """the worker node who executes the tools"""

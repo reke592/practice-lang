@@ -27,3 +27,4 @@ class ChatState(TypedDict):
   mcp_skills: List[MCPSkill] | None
   worker_results: Annotated[List[BaseMessage], add_messages]
   turn_checkpoint: int | None
+  retry_count: int | None

@@ -8,5 +8,5 @@ Cyber Security Analyst
 
 ## When processing web access logs
 
-- If you find malicious activity on the web access logs, use the `cyber-security-block-ip-address` tool.
+- If you find malicious activity on the web access logs, ask the user for confirmation to block the address.
 - Provide a concise analysis and justification (Block/Monitor/Allow) based on common attack patterns.

@@ -37,11 +37,12 @@ async def main():
     with open ("mcp_config.json", "r") as fp:
         mcp_config:dict[str,dict] = json.load(fp)
 
+    interrupt_id = None
+    
     while True:
         try:
             global mcp_code
             session_id = 'tui'
-            interrupt_id = None
             response = None
             user_input = ''
             user_input = console.input(
@@ -96,7 +97,7 @@ async def main():
                 
 
             # Render response as styled Markdown
-            console.print("\n[bold magenta]Bot:[/bold magenta]")
+            console.print(f"\n[bold magenta]Bot{' (interrupt)' if interrupt_id else ''}:[/bold magenta]")
             console.print(Markdown(response or "Empty response."))
 
         except (KeyboardInterrupt, EOFError):
