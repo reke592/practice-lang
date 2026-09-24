@@ -9,7 +9,7 @@ async def load_mcp_skills(session: ClientSession, scheme: str | None = "skills")
 
   mcp_skills: list[MCPSkill] = []
   descriptions: list[str] = [
-    "| Name | Description |",
+    "| Agent Name | Description |",
     "|------|-------------|"
   ]
 

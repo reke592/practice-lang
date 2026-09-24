@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+from anyio import ClosedResourceError
 from langchain_core.tools import BaseTool
 from langchain_core.messages import ToolMessage
 from langgraph.prebuilt.tool_node import ToolCallRequest
@@ -78,7 +79,7 @@ async def tool_call_middleware(request: ToolCallRequest, execute) -> ToolMessage
         # 1. Bubble up LangGraph's intentional interrupts to pause the graph for the human.
         raise
 
-    except asyncio.CancelledError:
+    except (asyncio.CancelledError, ClosedResourceError):
         # 2. Prevent async task cancellations from being swallowed and reported as tool errors.
         raise
     

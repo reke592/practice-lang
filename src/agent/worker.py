@@ -26,9 +26,14 @@ system_with_messages = ChatPromptTemplate.from_messages([
 
 @tool
 def human_input(question: str, runtime: ToolRuntime[Configuration, WorkerState]):
-  """Use this tool to get the user confirmation"""
+  """Use this tool to ask the user."""
   value = interrupt(question)
-  return value
+  return Command(
+    update= {
+      'messages': [ToolMessage(tool_call_id=runtime.tool_call_id, content=value)],
+      'hitl': [{ 'agent_clarification_request': question, 'user_response': value }]
+    }
+  )
 
 
 SYSTEM = """
@@ -120,13 +125,13 @@ Your duty is to prevent false assertions. You must look past eloquent phrasing a
 
 You must evaluate the state using three philosophical criteria:
 
-1. **The Principle of Intent (Teleology):** Did the Worker address the core of the original User Request?
+1. **The Principle of Intent (Teleology):** Did the Worker address the final effective intent of the user? User intent is dynamic. If human-in-the-loop (HITL) tool calls or human feedback inputs exist, they modify, correct, or replace constraints from the original User Request. The worker must align with the most recent human directives over stale initial constraints.
 
 2. **The Principle of Empirical Deed (Action vs. Assertion):**
    Do the worker's claims match the tool execution logs? A statement cannot be true if its empirical foundation contradicts it.
 
 3. **The Principle of Sufficient Resolution (Pragmatism):**
-   Is the response sufficient to move the user forward? An output does not need to be omniscient; it only needs to be accurate to the data retrieved and helpful to the user.
+   Is the response sufficient to move the user forward? An output does not need to be omniscient; it only needs to be accurate to the data retrieved and helpful to the updated user state.
 
 ---
 
@@ -134,6 +139,7 @@ You must evaluate the state using three philosophical criteria:
 You will be provided with:
 - **[User Request]:** The original, raw intent.
 - **[Active Skill/SOP]:** The rules and tools the worker was supposed to use.
+- **[Human-in-the-Loop]:** Any additional context or clarifications provided by the user during the interaction.
 - **[Tool Execution Logs]:** The exact inputs, outputs, and status (success/failure) of every tool called during this run.
 - **[Worker Output]:** The final message the worker intends to send to the supervisor/user.
 
@@ -174,6 +180,7 @@ async def relay_node(state: WorkerState, config: RunnableConfig):
   content = json.dumps({
     'user_request': user_request.content,
     'system_instructions': state['system_instructions'],
+    'human_in_the_loop': state.get('hitl', []),
     'tool_messages': [ m.content for m in success_tool_calls ],
     'worker_output': worker_answer.content
   })

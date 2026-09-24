@@ -1,3 +1,4 @@
+from operator import add
 from typing import Annotated, List, TypedDict
 
 from langchain.messages import ToolMessage
@@ -18,7 +19,8 @@ class WorkerState(TypedDict):
   last_tool_args: str | None
   """we use this to prevent the tool call loop"""
   final_answer: AIMessage | None
-  artifacts: Annotated[List[BaseMessage], add_messages] 
+  artifacts: Annotated[List[BaseMessage], add_messages]
+  hitl: Annotated[List[dict], add]
 
 class ChatState(TypedDict):
   """The state of the user-facing chatbot"""

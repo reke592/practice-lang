@@ -2,3 +2,5 @@
 - FastAPI Endpoints
 - MCP Server for Research RAG
 - MCP Server for Escalation Engine
+- TUI / UI
+  - support parallel agents interrupt
