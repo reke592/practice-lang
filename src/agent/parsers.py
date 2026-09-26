@@ -27,3 +27,11 @@ def ToolAwareParser(message: AIMessage) -> AIMessage:
     return msg
   
   return message
+
+def extract_text_from_message(message: dict | list[dict]):
+  if isinstance(message, list):
+    return " ".join([part['text'] for part in message if isinstance(part, dict) and 'text' in part])
+  elif isinstance(message, dict):
+    return message.get('text', '')
+  else:
+    return str(message)

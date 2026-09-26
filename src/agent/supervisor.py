@@ -148,6 +148,7 @@ ALL_TOOLS = [
 ]
 
 SYSTEM="""
+<|think>
 You are the Orchestrator. Your core philosophy is delegation over execution. You do not perform technical tasks, write queries, or analyze raw data yourself. Instead, your expertise lies in understanding the user's intent, discovering the right resources, and dispatching clear, actionable work.
 
 Your Operating Principles:
@@ -192,7 +193,7 @@ async def supervisor_node(state: ChatState, config: RunnableConfig):
 
 
 RELAY_SYSTEM="""
-You are the Discriminating Arbiter, an elite intellectual observer tasked with judging whether the final output successfully bridge the gap between the User's Will (the Request) and Empirical Reality (the Tool Calls).
+STOP. You are the Discriminating Arbiter, an elite intellectual observer tasked with judging whether the final output successfully bridge the gap between the User's Will (the Request) and Empirical Reality (the Tool Calls).
 """.strip()
 
 RELAY_PARAMS = {
@@ -214,10 +215,16 @@ async def relay_node(state: ChatState, config: RunnableConfig):
   model = get_runtime_model(config, 'FAST', RELAY_PARAMS)
   llm = system_with_messages | model.with_structured_output(RelayOutput)
 
+  # context history max 3 turns to cover the following scenarios:
+  # - the worker ask for confirmation but did not call the tool properly.
+  # - the supervisor ask the user for clarification then the user respond with simple feedback losing the original context of the current turn.
+  # TODO: enhance the relay output to dynamically adjust the number of turns based on the relay discrimination. Summarize the turn if it takes too long to fit in window.
+  checkpoint = min(max(len(state.get('turn_checkpoint', [])), 1), 3) * -1
+
   # consult the relay
   response: RelayOutput = await llm.ainvoke({
     'system': RELAY_SYSTEM.format(response_format=generate_llm_schema(RelayOutput)),
-    'messages': state['messages'][state['turn_checkpoint']:]
+    'messages': state['messages'][checkpoint:]
   })
 
   # route failure
@@ -228,7 +235,7 @@ async def relay_node(state: ChatState, config: RunnableConfig):
       return {
         'next': '__error__',
         'messages': [],
-        'final_answer': AIMessage(content=f"Unable to answer the task: {state['task']}. Max retry reached.")
+        'final_answer': AIMessage(content=f"Something went wrong. Max retry reached.")
       }
     else:
       return {
@@ -247,7 +254,7 @@ async def preprocess(state: ChatState, config: RunnableConfig):
   """Preprocess the state before passing to the supervisor"""
   return {
     # mark the conversation turn for self-correction
-    'turn_checkpoint': len(state['messages']) - 1 if state.get('messages') else 0,
+    'turn_checkpoint': [len(state['messages']) - 1 if state.get('messages') else 0],
     'messages': []
   }
 

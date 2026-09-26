@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from agent.chat_state import WorkerState
 from agent.configurables import Configuration, get_runtime_max_tool_retry, get_runtime_mcp_tools, get_runtime_model
 from agent.middlewares import tool_call_middleware
-from agent.parsers import ToolAwareParser
+from agent.parsers import ToolAwareParser, extract_text_from_message
 from agent.schemas import generate_llm_schema
 
 
@@ -31,7 +31,7 @@ def human_input(question: str, runtime: ToolRuntime[Configuration, WorkerState])
   return Command(
     update= {
       'messages': [ToolMessage(tool_call_id=runtime.tool_call_id, content=value)],
-      'hitl': [{ 'agent_clarification_request': question, 'user_response': value }]
+      'hitl': [{ 'agent_clarification_request': question, 'user_response': extract_text_from_message(value) }]
     }
   )
 

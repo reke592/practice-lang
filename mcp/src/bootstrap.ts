@@ -13,5 +13,8 @@ export async function bootstrap(server: McpServer) {
     import("./skills/cyber-security/index.js").then(({ register }) =>
       register(server),
     ),
+    import("./skills/restaurant-order-taker/index.js").then(({ register }) =>
+      register(server),
+    ),
   ]);
 }
