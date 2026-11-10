@@ -26,6 +26,9 @@ async def tool_call_middleware(request: ToolCallRequest, execute) -> ToolMessage
                 raise Exception(first_item['text'].replace("ToolCallError", "").strip())
 
 
+        # sample MCP tool output for generated resources:
+        #   RESOURCE_LINK: https://example.com/generated_artifact_name1.csv
+        #   RESOURCE_LINK: https://example.com/generated_artifact_name2.csv
         if isinstance(result.content, str):
             # 2. Extract multi-content payload from the MCP result
             # (Assuming you updated your TS server to return Option 2 text blocks or option 1 JSON)

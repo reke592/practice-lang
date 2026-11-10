@@ -141,10 +141,40 @@ def human_input(question: str, runtime: ToolRuntime[Configuration, ChatState]):
   value = interrupt(question)
   return value
 
+# TODO: much better if we design this to have an artifact-id so we can resolve the original details of the artifact and prevent hallucinated filenames / uri when delegating the task to a worker.
+@tool
+async def list_current_artifacts(runtime: ToolRuntime[Configuration, ChatState]):
+  """Use this tool to list the current artifacts in the conversation."""
+  artifact_names = []
+  
+  # artifacts = runtime.state.get('artifacts', [])
+  # for m in artifacts:
+  #   if hasattr(m, 'artifact'):
+  #     data = getattr(m, 'artifact')
+  #     if isinstance(data, list):
+  #       for i in data:
+  #         if 'resource' in i:
+  #           artifact_names.append(json.loads(i.get('resource')['name']))
+  #     else:
+  #       artifact_names.append(json.loads(data.get('resource')['name']))
+
+  return Command(
+    update={
+      'messages': [
+        ToolMessage(
+          tool_call_id=runtime.tool_call_id,
+          content=f"Current Artifacts:\n\n{'\n'.join(artifact_names) if artifact_names else 'No artifacts found.'}"
+        )
+      ]
+    }
+  )
+
+
 ALL_TOOLS = [
   # list_agents, 
   task, 
-  human_input
+  human_input,
+  list_current_artifacts
 ]
 
 SYSTEM="""
