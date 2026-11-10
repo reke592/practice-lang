@@ -17,6 +17,7 @@ from agent.middlewares import tool_call_middleware
 from agent.parsers import ToolAwareParser, extract_text_from_message
 from agent.schemas import generate_llm_schema
 
+from infrastructure.database.repositories.documents_repository import DocumentsRepository
 
 system_with_messages = ChatPromptTemplate.from_messages([
   ('system', '{system}'),
@@ -35,6 +36,29 @@ def human_input(question: str, runtime: ToolRuntime[Configuration, WorkerState])
     }
   )
 
+@tool
+async def search_for_relevant_documents(query: str, runtime: ToolRuntime[Configuration, WorkerState]):
+  """
+  Use this tool to search for relevant documents.
+
+  parameters:
+  - query: The parameter value for similarity search. You MUST enhance this query to retrieve the most relevant documents. (e.g. including the clear english translation of the request)
+  """
+  config = runtime.config.get('configurable')
+  user_id = config.get('user_id')
+  documents_repo: DocumentsRepository = config.get('documents_repo')
+  docs = await documents_repo.search_for_relevant_documents(user_id=user_id, query=query)
+  results = []
+  for item in docs:
+    metadata = item.get('metadata', {})
+    page_content = item.get('page_content', "")
+    results.append(
+        (
+            f"Document Source: (title: {metadata['title']}, page_no: {int(metadata['page'] or 0) + 1})\n"
+            f"Content: {page_content}"
+        )
+    )
+  return "\n\n".join(results) if results else "No Record Found"
 
 SYSTEM = """
 STOP. Your essence, your purpose, and the limits of your understanding are strictly governed by the virtues of your assigned skills. You do not exist outside of these parameters:
@@ -56,7 +80,10 @@ PARAMS = {
   "max_tokens": 16384
 }
 
-ALL_TOOLS: List[BaseTool] = [human_input]
+ALL_TOOLS: List[BaseTool] = [
+  human_input, 
+  search_for_relevant_documents
+]
 
 async def worker_node(state: WorkerState, config: RunnableConfig):
   """the worker node who executes the tools"""

@@ -23,6 +23,7 @@ from agent.configurables import ChatModels, Configuration
 from api.schemas.chat import ChatStreamChunk
 from environment import LLM_PROVIDER_MODEL, MAX_TOOL_RETRY
 from infrastructure.llm.client import PROVIDERS
+from infrastructure.database.repositories.documents_repository import DocumentsRepository
 from logger import console
 
 # Suppress the specific pandas UserWarning about DBAPI2 objects
@@ -110,6 +111,7 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
 
 async def process_chat(
   message: str,
+  user_id: int,
   session_id: str,
   embedding_func: Embeddings,
   compressor: BaseDocumentCompressor,
@@ -117,8 +119,9 @@ async def process_chat(
   mcp_code: str,
   yield_formatter: Callable[[str, bool, str | None], ChatStreamChunk],
   checkpointer: BaseCheckpointSaver[str],
+  documents_repo: DocumentsRepository,
   provider = LLM_PROVIDER_MODEL,
-  interrupt_id: str | None = None
+  interrupt_id: str | None = None,
 ):
     # Tracing configurations
     with langfuse.start_as_current_observation(
@@ -129,15 +132,13 @@ async def process_chat(
         }
     ) as span:
         # TODO: tracing id
-        trace_user_id = 'dev'
+        trace_user_id = f"user_{user_id}"
 
         # Propagate trace to all child observation
         with propagate_attributes(
             user_id=trace_user_id,
             metadata={
-                'tenant_id': 'tenant_id',
-                'company_id': 'company_id',
-                'user_id': 'user_id'
+                'user_id': trace_user_id,
             }
         ):
             composite_thread_id = get_composite_thread_id(session_id=session_id)
@@ -181,7 +182,9 @@ async def process_chat(
                         max_tool_retry=MAX_TOOL_RETRY,
                         models=ChatModels(**PROVIDERS[provider]),
                         embedding_func=embedding_func,
-                        compressor=compressor
+                        compressor=compressor,
+                        documents_repo=documents_repo,
+                        user_id=user_id
                     )
                     run_config = RunnableConfig(
                         configurable=configurable | {},

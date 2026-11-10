@@ -10,6 +10,7 @@ from mcp import ClientSession
 
 from agent.schemas import MCPSkill
 from environment import MAX_TOOL_RETRY
+from infrastructure.database.repositories.documents_repository import DocumentsRepository
 
 
 class ChatModels(TypedDict):
@@ -36,6 +37,7 @@ class Configuration(TypedDict):
   models: ChatModels
   embedding_func: Embeddings
   compressor: BaseDocumentCompressor
+  documents_repo: DocumentsRepository
 
 
 def get_runtime_mcp_client(runnable: RunnableConfig) -> MultiServerMCPClient | None:

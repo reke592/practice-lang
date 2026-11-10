@@ -6,11 +6,17 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
 
-from api.schemas.chat import ChatStreamChunk
-from api.services.chat import delete_chat_checkpoints, process_chat
 from environment import BUILD_COMMIT_ID
 from infrastructure.checkpointer.client import checkpointer_close, checkpointer_setup, get_checkpointer
+from infrastructure.database.repositories.documents_repository import DocumentsRepository
+from infrastructure.database.repositories.users_repository import UsersRepository
+from infrastructure.database.client import db_client
 from utils.embeddings import embedding_func, compressor
+
+from api.schemas.chat import ChatStreamChunk
+from api.services.chat import delete_chat_checkpoints, process_chat
+from api.services.rag import save_embeddings
+
 from logger import console
 
 mcp_code = "dev"
@@ -37,8 +43,17 @@ async def main():
     with open ("mcp_config.json", "r") as fp:
         mcp_config:dict[str,dict] = json.load(fp)
 
+    # for hitl
     interrupt_id = None
-    
+
+    # for terminal session, need to use real user id
+    user_id = 1 
+
+    # initialize database connection
+    await db_client.connect()
+    await UsersRepository(db_client).ensure_admin_exists()
+    documents_repo =DocumentsRepository(db_client)
+
     while True:
         try:
             global mcp_code
@@ -50,7 +65,7 @@ async def main():
                 else f"\n[dim]({mcp_code})|[/dim][bold green]You:[/bold green] "
             ).strip()
             
-            if user_input.lower() in ["exit", "quit"]:
+            if user_input.lower() in ["/exit", "/quit"]:
                 console.print("[yellow]Goodbye![/yellow]")
                 break
 
@@ -71,8 +86,23 @@ async def main():
             if not user_input:
                 continue
 
-            # Display a spinner while waiting for the LLM
-            with Live(None, console=console, refresh_per_second=10, transient=True, screen=True) as live:
+            try:
+                if user_input.lower().startswith("/upload"):
+                    args = user_input.split(" ")
+                    if len(args) < 3:
+                        console.print("[red]Usage: /upload <file_path> <title>[/red]")
+                        continue
+                    file_path = args[1]
+                    title = " ".join(args[2:])
+                    await save_embeddings(file_path=file_path, repo=DocumentsRepository(db_client), user_id=user_id, title=title)
+                    continue
+            except Exception as e:
+                console.print(f"[red]Error uploading file: {e}[/red]")
+                continue
+
+            # Display a spinner while waiting for the LLM, optionally hide/show thoughts
+            hide_thoughts = False
+            with Live(None, console=console, refresh_per_second=10, transient=hide_thoughts, screen=hide_thoughts) as live:
                 with console.status("[bold blue]Thinking...[/bold blue]\n") as status:
                     def on_yield(message: str, is_summary: bool, interrupt: str | None) -> ChatStreamChunk:
                         nonlocal interrupt_id
@@ -92,6 +122,8 @@ async def main():
                         mcp_config=mcp_config,
                         session_id="tui",
                         yield_formatter=on_yield,
+                        documents_repo=documents_repo,
+                        user_id=user_id
                     ):
                         pass
                 
@@ -104,6 +136,9 @@ async def main():
             await checkpointer_close()
             console.print("\n[yellow]Goodbye![/yellow]")
             break
+
+    await db_client.disconnect()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

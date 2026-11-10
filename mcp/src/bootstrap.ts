@@ -16,5 +16,8 @@ export async function bootstrap(server: McpServer) {
     import("./skills/restaurant-order-taker/index.js").then(({ register }) =>
       register(server),
     ),
+    import("./skills/researcher/index.js").then(({ register }) =>
+      register(server),
+    ),
   ]);
 }
