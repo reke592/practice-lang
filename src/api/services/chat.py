@@ -16,15 +16,16 @@ from langfuse.langchain import CallbackHandler
 from langgraph.types import Command
 from mcp import StdioServerParameters
 
+from shared.environment import LLM_PROVIDER_MODEL, MAX_TOOL_RETRY
+from shared.logger import console
+
 from agent.chat_state import ChatState
 from utils.mcp import load_mcp_skills
 from agent.supervisor import init_graph as get_ai
 from agent.configurables import ChatModels, Configuration
 from api.schemas.chat import ChatStreamChunk
-from environment import LLM_PROVIDER_MODEL, MAX_TOOL_RETRY
 from infrastructure.llm.client import PROVIDERS
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
-from logger import console
 
 # Suppress the specific pandas UserWarning about DBAPI2 objects
 warnings.filterwarnings(
@@ -40,8 +41,23 @@ langfuse = get_client()
 # Initialize Langfuse CallbackHandler for Langchain (tracing)
 langfuse_handler = CallbackHandler()
 
-_yield_formatter = Callable[[str, bool, str | None], ChatStreamChunk]
+type YieldFormatter = Callable[[str, bool, str | None], ChatStreamChunk]
 
+def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str):
+    """
+    returns the interrupt_id with the message | summary.
+
+    the difference between message and summary is the summary being a json string, because it may contain atrifact details
+    """
+    return f"data: {json.dumps(
+        {
+            'message': message, 
+            'interrupt_id': interrupt_id
+        } if not is_summary 
+        else {
+            'summary': message,
+            'interrupt_id': interrupt_id
+        })}\n\n"
 
 def get_composite_thread_id(session_id: str):
     return f"session:{session_id}"
@@ -52,7 +68,7 @@ async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], sessio
     await checkpointer.adelete_thread(thread_id=thread_id)
 
 
-async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSpan, interrupt_id: str | None, yield_formatter: _yield_formatter):
+async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSpan, interrupt_id: str | None, yield_formatter: YieldFormatter):
     
     # start sending stream chunks
     async for chunk in get_ai().astream(
@@ -117,9 +133,9 @@ async def process_chat(
   compressor: BaseDocumentCompressor,
   mcp_config: dict[str, Connection],
   mcp_code: str,
-  yield_formatter: Callable[[str, bool, str | None], ChatStreamChunk],
   checkpointer: BaseCheckpointSaver[str],
   documents_repo: DocumentsRepository,
+  yield_formatter: YieldFormatter = sse_yield_formatter,
   provider = LLM_PROVIDER_MODEL,
   interrupt_id: str | None = None,
 ):

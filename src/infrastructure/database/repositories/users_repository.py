@@ -1,9 +1,9 @@
 import random
 
-from environment import DATA_DIR
 from infrastructure.database.client import DatabaseClient
 from utils.passwords import hash_password
-from logger import getLogger
+from shared.environment import DATA_DIR
+from shared.logger import getLogger
 
 _logger = getLogger(__name__)
 

@@ -9,7 +9,7 @@ from langchain_core.retrievers import BaseRetriever
 
 from infrastructure.database.client import DatabaseClient
 from utils.embeddings import read_path_to_doc, setup_reranker, compressor, embedding_func, text_splitter
-from logger import getLogger
+from shared.logger import getLogger
 
 _logger = getLogger(__name__)
 

@@ -6,8 +6,8 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
-import environment as env
-from logger import getLogger
+import shared.environment as env
+from shared.logger import getLogger
 
 _logger = getLogger(__name__)
 

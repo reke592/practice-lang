@@ -2,7 +2,7 @@ import copy
 
 from langchain_core.messages import AIMessage
 
-from constants import COLOR_GREEN, COLOR_GREY, COLOR_RESET
+from shared.constants import COLOR_GREEN, COLOR_GREY, COLOR_RESET
 
 
 def ToolAwareParser(message: AIMessage) -> AIMessage:

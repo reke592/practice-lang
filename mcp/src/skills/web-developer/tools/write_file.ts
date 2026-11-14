@@ -7,11 +7,11 @@ import { tempDir } from "../../../environment.js";
 export function register(server: McpServer) {
   // Register a simple tool
   server.registerTool(
-    "create-file",
+    "write_file",
     {
       description: "Use this tool to write new file",
       inputSchema: {
-        filepath: z.string().describe("The filename"),
+        filepath: z.string().describe("The filename with extension"),
         content: z.string().describe("The file content"),
       },
     },

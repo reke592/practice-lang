@@ -1,6 +1,13 @@
-- Dumb Agent
-- FastAPI Endpoints
-- MCP Server for Research RAG
+/ Dumb Agent
+/ FastAPI Endpoints
+/ MCP Server for Research RAG
 - MCP Server for Escalation Engine
-- TUI / UI
+/ TUI / UI
   - support parallel agents interrupt
+- let the agent generate the chat ui we use to connect to FastAPI
+- CoALA to support processing large context
+
+Bugs:
+- supervisor has valid response for simple questions like 'Hi', but the relay discriminator fail the output resulting to loop.
+- context >4096 tokens the agent lose the conversation, we need a summarizer
+- given we use same model for worker and discriminator, they both share thesame bias resulting to hallucinated response.

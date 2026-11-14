@@ -6,7 +6,9 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
 
-from environment import BUILD_COMMIT_ID
+from shared.environment import BUILD_COMMIT_ID
+from shared.logger import console
+
 from infrastructure.checkpointer.client import checkpointer_close, checkpointer_setup, get_checkpointer
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
 from infrastructure.database.repositories.users_repository import UsersRepository
@@ -16,8 +18,6 @@ from utils.embeddings import embedding_func, compressor
 from api.schemas.chat import ChatStreamChunk
 from api.services.chat import delete_chat_checkpoints, process_chat
 from api.services.rag import save_embeddings
-
-from logger import console
 
 mcp_code = "dev"
 

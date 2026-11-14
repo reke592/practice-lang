@@ -2,7 +2,7 @@ from typing import Literal
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-import environment as env
+import shared.environment as env
 
 def init_llm(model: str, 
              provider: Literal["google","ollama","openai"], 

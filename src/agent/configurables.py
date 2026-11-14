@@ -9,7 +9,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from mcp import ClientSession
 
 from agent.schemas import MCPSkill
-from environment import MAX_TOOL_RETRY
+from shared.environment import MAX_TOOL_RETRY
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
 
 

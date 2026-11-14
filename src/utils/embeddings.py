@@ -11,8 +11,8 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from flashrank import Ranker
 
-from logger import getLogger
-import environment as env
+from shared.logger import getLogger
+import shared.environment as env
 
 _logger = getLogger(__name__)
 

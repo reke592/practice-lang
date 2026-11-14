@@ -4,7 +4,7 @@ import z from "zod";
 export function register(server: McpServer) {
   // Register a simple tool
   server.registerTool(
-    "calculate-sum",
+    "calculate_sum",
     {
       description: "Adds two numbers together",
       inputSchema: {

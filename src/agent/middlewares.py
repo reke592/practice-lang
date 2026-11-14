@@ -7,7 +7,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.errors import GraphInterrupt
 from langgraph.types import Command
 
-from constants import COLOR_MAGENTA, COLOR_RESET
+from shared.constants import COLOR_MAGENTA, COLOR_RESET
 
 async def tool_call_middleware(request: ToolCallRequest, execute) -> ToolMessage | Command:
     """Middleware that intercepts tool executions and extracts custom resource metadata"""
