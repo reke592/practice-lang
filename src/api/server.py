@@ -10,28 +10,30 @@ from infrastructure.checkpointer.client import checkpointer_setup, checkpointer_
 from api.handlers.errors import AppError, app_error_handler, unhandled_error_handler
 from api.endpoints.chat import router as chat_router
 
+
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-  await db_client.connect()
-  await checkpointer_setup()
-  yield
-  await db_client.disconnect()
-  await checkpointer_close()
+    await db_client.connect()
+    await checkpointer_setup()
+    yield
+    await db_client.disconnect()
+    await checkpointer_close()
 
 app = FastAPI(
-  title="Practice-Lang",
-  description="Practice project LLM Agent",
-  version=f"0.0.1 ({BUILD_COMMIT_ID})",
-  lifespan=lifespan
+    title="Practice-Lang",
+    description="Practice project LLM Agent",
+    version=f"0.0.1 ({BUILD_COMMIT_ID})",
+    lifespan=lifespan,
+    openapi_url="/api/v1/openapi.json"
 )
 
 origins = ['*']
 app.add_middleware(
-  CORSMiddleware,
-  allow_origins=origins,
-  allow_credentials=True,
-  allow_methods=['GET','POST','PUT','PATCH','DELETE'],
-  allow_headers=['*']
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allow_headers=['*']
 )
 
 app.include_router(chat_router)

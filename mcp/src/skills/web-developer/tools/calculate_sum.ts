@@ -6,7 +6,7 @@ export function register(server: McpServer) {
   server.registerTool(
     "calculate_sum",
     {
-      description: "Adds two numbers together",
+      description: "Adds two numbers together.",
       inputSchema: {
         a: z.number().describe("First number"),
         b: z.number().describe("Second number"),

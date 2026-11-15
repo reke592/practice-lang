@@ -26,38 +26,38 @@ system_with_messages = ChatPromptTemplate.from_messages([
 ])
 
 
-# @tool
-# async def list_agents(runtime: ToolRuntime[Configuration, ChatState]):
-#   """Use this tool to list the available agents."""
-#   session = get_runtime_mcp_session(runtime.config)
+@tool
+async def list_agents(runtime: ToolRuntime[Configuration, ChatState]):
+  """Use this tool to list the available agents."""
+  session = get_runtime_mcp_session(runtime.config)
 
-#   if not session:
-#     return "No MCP session available. Please ensure the session is initialized."
+  if not session:
+    return "No MCP session available. Please ensure the session is initialized."
 
-#   result = await session.list_resources()
+  result = await session.list_resources()
 
-#   mcp_skills: list[MCPSkill] = []
-#   content: list[str] = [
-#     "| Name | Description |",
-#     "|------|-------------|"
-#   ]
+  mcp_skills: list[MCPSkill] = []
+  content: list[str] = [
+    "| Name | Description |",
+    "|------|-------------|"
+  ]
 
-#   # print(result.resources)
+  # print(result.resources)
 
-#   for item in result.resources:
-#     mcp_skills.append(MCPSkill.model_validate({
-#       'name': item.name,
-#       'description': item.description,
-#       'uri': f"{item.uri}"
-#     }))
-#     content.append(f"| {item.name} | {item.description} |")
+  for item in result.resources:
+    mcp_skills.append(MCPSkill.model_validate({
+      'name': item.name,
+      'description': item.description,
+      'uri': f"{item.uri}"
+    }))
+    content.append(f"| {item.name} | {item.description} |")
 
-#   return Command(
-#     update = {
-#       'mcp_skills': mcp_skills,
-#       'messages': [ToolMessage(tool_call_id=runtime.tool_call_id, content = "\n".join(content))]
-#     }
-#   )
+  return Command(
+    update = {
+      'mcp_skills': mcp_skills,
+      'messages': [ToolMessage(tool_call_id=runtime.tool_call_id, content = "\n".join(content))]
+    }
+  )
 
 
 @tool
@@ -171,7 +171,7 @@ async def list_current_artifacts(runtime: ToolRuntime[Configuration, ChatState])
 
 
 ALL_TOOLS = [
-  # list_agents, 
+  list_agents, 
   task, 
   human_input,
   list_current_artifacts
@@ -328,7 +328,7 @@ async def process_artifacts(state: ChatState, config: RunnableConfig):
       artifacts.append(json.loads(m.artifact.get('resource')))
 
   json_output = json.dumps({
-    'completed_tasks': [f"{synthesized}"],
+    'message': synthesized, #[f"{synthesized}"],
     'artifacts': artifacts
   })
 

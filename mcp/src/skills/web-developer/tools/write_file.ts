@@ -9,7 +9,7 @@ export function register(server: McpServer) {
   server.registerTool(
     "write_file",
     {
-      description: "Use this tool to write new file",
+      description: "Use this tool to write new file.",
       inputSchema: {
         filepath: z.string().describe("The filename with extension"),
         content: z.string().describe("The file content"),

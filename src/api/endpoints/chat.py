@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 
 from api.dependencies import get_checkpointer, get_compressor, get_documents_repo, get_embedding_func, get_mcp_config
 from api.schemas.chat import ChatRequest
-from api.services.chat import process_chat
+from api.services.chat import delete_chat_checkpoints, process_chat
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
@@ -19,6 +19,14 @@ router = APIRouter(
         200: {
             "content": {"text/event-stream": {}},
             "description": "live stream of updates.",
+            "examples": [
+                """
+                "data: {"is_summary": false, "message": "thinking or interrupt message", "interrupt_id": "optional string to include in next reply when the agent interrupts for HTIL.", "artifacts": [] }"
+                """.strip(),
+                """
+                "data: {"is_summary": true, "message": "the final answer", "interrupt_id": "", "artifacts": [{"resource": "generated artifacts URL"}] }"
+                """.strip()
+            ],
         }
     }
 )
@@ -47,3 +55,9 @@ async def chat(
     )
     
     return StreamingResponse(content, media_type="text/event-stream")
+
+
+@router.get("/clear")
+async def clear(checkpointer: BaseCheckpointSaver[str] = Depends(get_checkpointer)):
+    await delete_chat_checkpoints(checkpointer=checkpointer, session_id='dev')
+    return "Ok"

@@ -45,19 +45,28 @@ type YieldFormatter = Callable[[str, bool, str | None], ChatStreamChunk]
 
 def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str):
     """
-    returns the interrupt_id with the message | summary.
+    return a string data for SSE.
 
-    the difference between message and summary is the summary being a json string, because it may contain atrifact details
+    - message: string
+    - artifacts: array
+    - interrupt_id: string for HITL
     """
-    return f"data: {json.dumps(
-        {
-            'message': message, 
+    if not is_summary:
+        content = json.dumps({
+            'message': message,
+            'artifacts': [],
             'interrupt_id': interrupt_id
-        } if not is_summary 
-        else {
-            'summary': message,
+        })
+    else:
+        parsed = json.loads(message)
+        content = json.dumps({
+            'message': parsed['message'],
+            'artifacts': parsed['artifacts'],
             'interrupt_id': interrupt_id
-        })}\n\n"
+        })
+
+    return f"data: {content}\n\n"
+
 
 def get_composite_thread_id(session_id: str):
     return f"session:{session_id}"

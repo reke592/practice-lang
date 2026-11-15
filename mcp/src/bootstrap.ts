@@ -3,19 +3,21 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 export async function bootstrap(server: McpServer) {
   await Promise.all([
     // skills
-    import("./skills/web-developer/index.js").then(({ register }) => register(server)),
-    import("./skills/gym-dietitian-nutritionist/index.js").then(
-      ({ register }) => register(server),
-    ),
-    import("./skills/gym-physical-therapist/index.js").then(({ register }) =>
+    import("./skills/web-developer/index.js").then(({ register }) =>
       register(server),
     ),
-    import("./skills/cyber-security/index.js").then(({ register }) =>
-      register(server),
-    ),
-    import("./skills/restaurant-order-taker/index.js").then(({ register }) =>
-      register(server),
-    ),
+    // import("./skills/gym-dietitian-nutritionist/index.js").then(
+    //   ({ register }) => register(server),
+    // ),
+    // import("./skills/gym-physical-therapist/index.js").then(({ register }) =>
+    //   register(server),
+    // ),
+    // import("./skills/cyber-security/index.js").then(({ register }) =>
+    //   register(server),
+    // ),
+    // import("./skills/restaurant-order-taker/index.js").then(({ register }) =>
+    //   register(server),
+    // ),
     import("./skills/researcher/index.js").then(({ register }) =>
       register(server),
     ),

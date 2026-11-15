@@ -108,7 +108,7 @@ async def main():
                         nonlocal interrupt_id
                         nonlocal response
                         interrupt_id = interrupt
-                        response = message if not is_summary else "\n\n".join(json.loads(message)['completed_tasks'])
+                        response = message if not is_summary else "\n\n".join(json.loads(message)['message'])
                         status.update(f"[dim]{response}[/dim]")
                         return ChatStreamChunk(message=message, summary=message if is_summary else '')
 
