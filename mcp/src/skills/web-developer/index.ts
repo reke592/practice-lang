@@ -7,6 +7,7 @@ import * as createFileTool from "./tools/write_file.js";
 import * as listFilesTool from "./tools/list_files.js";
 import * as readFile from "./tools/read_file.js";
 import * as readApiDocs from "./tools/read_api_docs.js";
+import * as patchFile from "./tools/patch_file.js";
 
 export function register(server: McpServer) {
   // tools
@@ -14,6 +15,7 @@ export function register(server: McpServer) {
   createFileTool.register(server);
   listFilesTool.register(server);
   readFile.register(server);
+  patchFile.register(server);
   readApiDocs.register(server);
 
   // skill resource

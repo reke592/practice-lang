@@ -18,7 +18,7 @@ router = APIRouter(
     responses={
         200: {
             "content": {"text/event-stream": {}},
-            "description": "live stream of updates.",
+            "description": "live stream of updates. The response message is not word-by-word, You need to refresh the UI widget to display the whole paragraph.",
             "examples": [
                 """
                 "data: {"is_summary": false, "message": "thinking or interrupt message", "interrupt_id": "optional string to include in next reply when the agent interrupts for HTIL.", "artifacts": [] }"

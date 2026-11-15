@@ -262,12 +262,13 @@ async def relay_node(state: ChatState, config: RunnableConfig):
   # - the worker ask for confirmation but did not call the tool properly.
   # - the supervisor ask the user for clarification then the user respond with simple feedback losing the original context of the current turn.
   # TODO: enhance the relay output to dynamically adjust the number of turns based on the relay discrimination. Summarize the turn if it takes too long to fit in window.
-  checkpoint = min(max(len(state.get('turn_checkpoint', [])), 1), 3) * -1
+  turns = state.get('turn_checkpoint', [])
+  checkpoint = min(max(len(turns), 1), 3) * -1
 
   # consult the relay
   response: RelayOutput = await llm.ainvoke({
     'system': RELAY_SYSTEM.format(response_format=generate_llm_schema(RelayOutput)),
-    'messages': state['messages'][checkpoint:]
+    'messages': state['messages'][turns[checkpoint]:]
   })
 
   # route failure
