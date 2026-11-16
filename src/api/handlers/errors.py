@@ -2,14 +2,9 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from shared.logger import getLogger
+from shared.errors import AppError, CancellationError
 
 _logger = getLogger(__name__)
-
-
-class AppError(Exception):
-  def __init__(self, message: str, code: str = "AppError"):
-    self.message = message
-    self.code = code
 
 
 class ErrorResponseFormat(BaseModel):
@@ -18,8 +13,14 @@ class ErrorResponseFormat(BaseModel):
 
 
 async def app_error_handler(request: Request, e: AppError):
+  status_code = 400
+
+  if isinstance(e, CancellationError):
+    status_code = 499
+    _logger.info(e.message)
+
   return JSONResponse(
-    status_code=400,
+    status_code=status_code,
     content=ErrorResponseFormat.model_validate({
       'code': e.code,
       'message': e.message

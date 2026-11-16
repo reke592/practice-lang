@@ -9,3 +9,6 @@ class ChatRequest(BaseModel):
 class ChatStreamChunk(BaseModel):
     message: str
     summary: Optional[str]
+
+class ChatCancelRequest(BaseModel):
+    cancellation_token: str = Field(description="The cancellation token received from the intial response of stream.", examples=["{{cancellation_token}}"])

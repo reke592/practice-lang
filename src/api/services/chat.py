@@ -26,6 +26,7 @@ from agent.configurables import ChatModels, Configuration
 from api.schemas.chat import ChatStreamChunk
 from infrastructure.llm.client import PROVIDERS
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
+from infrastructure.cache.client import BaseCacheClient
 
 # Suppress the specific pandas UserWarning about DBAPI2 objects
 warnings.filterwarnings(
@@ -41,9 +42,9 @@ langfuse = get_client()
 # Initialize Langfuse CallbackHandler for Langchain (tracing)
 langfuse_handler = CallbackHandler()
 
-type YieldFormatter = Callable[[str, bool, str | None], ChatStreamChunk]
+type YieldFormatter = Callable[[str, bool, str | None, str | None], ChatStreamChunk]
 
-def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str):
+def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None, cancellation_token: str | None):
     """
     return a string data for SSE.
 
@@ -51,18 +52,27 @@ def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str):
     - artifacts: array
     - interrupt_id: string for HITL
     """
-    if not is_summary:
+    if cancellation_token:
         content = json.dumps({
             'message': message,
             'artifacts': [],
-            'interrupt_id': interrupt_id
+            'interrupt_id': None,
+            'cancellation_token': cancellation_token
+        })
+    elif not is_summary:
+        content = json.dumps({
+            'message': message,
+            'artifacts': [],
+            'interrupt_id': interrupt_id,
+            'cancellation_token': None
         })
     else:
         parsed = json.loads(message)
         content = json.dumps({
             'message': parsed['message'],
             'artifacts': parsed['artifacts'],
-            'interrupt_id': interrupt_id
+            'interrupt_id': interrupt_id,
+            'cancellation_token': None
         })
 
     return f"data: {content}\n\n"
@@ -77,8 +87,10 @@ async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], sessio
     await checkpointer.adelete_thread(thread_id=thread_id)
 
 
-async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSpan, interrupt_id: str | None, yield_formatter: YieldFormatter):
-    
+async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSpan, interrupt_id: str | None, yield_formatter: YieldFormatter, cancellation_token: str):
+    # send cancellation token to frontend
+    yield_formatter("Initializing", False, None, cancellation_token)
+
     # start sending stream chunks
     async for chunk in get_ai().astream(
         input=ChatState(**input) if not interrupt_id else Command(resume=input['messages'][0]),
@@ -93,13 +105,13 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
 
                 # when the supervisor call multiple subagents in parallel
                 if isinstance(state, list):
-                    yield yield_formatter("Synthesizing results", False, None)
+                    yield yield_formatter("Synthesizing results", False, None, None)
                     continue
 
                 # HITL
                 if isinstance(state, tuple):
                     if state[0].__class__.__name__ == 'Interrupt':
-                        yield yield_formatter(state[0].value, False, state[0].id)
+                        yield yield_formatter(state[0].value, False, state[0].id, None)
                     continue
 
                 # ignore state updates if it does not contain a message
@@ -114,20 +126,20 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
 
                     # when the llm generates a tool call request
                     if isinstance(latest_message.content, list):
-                        yield yield_formatter("Gathering more information", False, None)
+                        yield yield_formatter("Gathering more information", False, None, None)
                         continue
 
                     # when the graph receives a tool call response
                     if hasattr(latest_message, 'tool_call_id') and latest_message.tool_call_id:
-                        yield yield_formatter(latest_message.content, False, None)
+                        yield yield_formatter(latest_message.content, False, None, None)
                         continue
 
                     # text content
-                    yield yield_formatter(latest_message.content, False, None)
+                    yield yield_formatter(latest_message.content, False, None, None)
 
                     # json content, this may includes artifact urls
                     if hasattr(latest_message, 'kwargs') and 'json_output' in latest_message.kwargs:
-                        yield yield_formatter(latest_message.kwargs['json_output'], True, None)
+                        yield yield_formatter(latest_message.kwargs['json_output'], True, None, None)
                     
                 elif getattr(latest_message, 'tool_calls', None):
                     tools = [tc['name'] for tc in latest_message.tool_calls]
@@ -142,6 +154,8 @@ async def process_chat(
   compressor: BaseDocumentCompressor,
   mcp_config: dict[str, Connection],
   mcp_code: str,
+  cancellation_token: str,
+  cache: BaseCacheClient,
   checkpointer: BaseCheckpointSaver[str],
   documents_repo: DocumentsRepository,
   yield_formatter: YieldFormatter = sse_yield_formatter,
@@ -209,6 +223,7 @@ async def process_chat(
                         embedding_func=embedding_func,
                         compressor=compressor,
                         documents_repo=documents_repo,
+                        cache=cache,
                         user_id=user_id
                     )
                     run_config = RunnableConfig(
@@ -216,7 +231,7 @@ async def process_chat(
                         recursion_limit=40,
                         callbacks=[langfuse_handler]
                     )
-                    async for m in _process_request(run_input, run_config, span, interrupt_id, yield_formatter):
+                    async for m in _process_request(run_input, run_config, span, interrupt_id, yield_formatter, cancellation_token):
                         yield m
             else:
                 configurable = Configuration(
@@ -225,15 +240,20 @@ async def process_chat(
                     mcp_session=None,
                     mcp_client=mcp_client,
                     mcp_tools=None,
+                    mcp_skills=[],
+                    mcp_skills_descriptions="",
                     max_tool_retry=MAX_TOOL_RETRY,
                     models=ChatModels(**PROVIDERS[provider]),
                     embedding_func=embedding_func,
-                    compressor=compressor
+                    compressor=compressor,
+                    documents_repo=documents_repo,
+                    cache=cache,
+                    user_id=user_id
                 )
                 run_config = RunnableConfig(
                     configurable=configurable | {},
                     recursion_limit=40,
                     callbacks=[langfuse_handler]
                 )
-                async for m in _process_request(run_input, run_config, span, interrupt_id, yield_formatter):
+                async for m in _process_request(run_input, run_config, span, interrupt_id, yield_formatter, cancellation_token):
                     yield m

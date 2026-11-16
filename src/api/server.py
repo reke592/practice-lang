@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from shared.environment import BUILD_COMMIT_ID
 from infrastructure.database.client import db_client
+from infrastructure.cache.client import redis_client
 from infrastructure.checkpointer.client import checkpointer_setup, checkpointer_close
 
 from api.handlers.errors import AppError, app_error_handler, unhandled_error_handler
@@ -14,9 +15,11 @@ from api.endpoints.chat import router as chat_router
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     await db_client.connect()
+    await redis_client.connect()
     await checkpointer_setup()
     yield
     await db_client.disconnect()
+    await redis_client.disconnect()
     await checkpointer_close()
 
 app = FastAPI(

@@ -61,3 +61,10 @@ MAX_TOOL_RETRY=int(os.getenv("MAX_TOOL_RETRY", '3'))
 LANGFUSE_SECRET_KEY=SecretStr(os.getenv("LANGFUSE_SECRET_KEY", ""))
 LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_BASE_URL=os.getenv("LANGFUSE_BASE_URL", "")
+
+# Redis
+REDIS_HOST=os.getenv("REDIS_HOST", "redis")
+REDIS_PORT=int(os.getenv("REDIS_PORT", "6379"))
+REDIS_USER=os.getenv("REDIS_USER", "")
+REDIS_PASSWORD=SecretStr(os.getenv("REDIS_PASSWORD", ""))
+REDIS_MAX_CONNECTION=int(os.getenv("REDIS_MAX_CONNECTION", "10"))

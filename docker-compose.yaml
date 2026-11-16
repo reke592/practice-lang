@@ -10,23 +10,27 @@ services:
       - /workspace/agent/venv
       - /workspace/agent/mcp/node_modules
     command: tail -f /dev/null
-    network_mode: host
 
   postgres:
-   # Using Postgres 17 with pgvector (the 2026 standard)
-   image: pgvector/pgvector:pg17
-   ports:
-     - "15432:5432"
-   environment:
-     - POSTGRES_USER=${POSTGRES_USER:-dev}
-     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
-     - POSTGRES_DB=practice_lang
-   volumes:
-     # Data persistence
-     - ./var/postgres_data:/var/lib/postgresql/data
-     # Optional: auto-enable extension on first start
-     - ./var/init.sql:/docker-entrypoint-initdb.d/init.sql
-   restart: unless-stopped
+    # Using Postgres 17 with pgvector (the 2026 standard)
+    image: pgvector/pgvector:pg17
+    ports:
+      - "15432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-dev}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
+      - POSTGRES_DB=practice_lang
+    volumes:
+      # Data persistence
+      - ./var/postgres_data:/var/lib/postgresql/data
+      # Optional: auto-enable extension on first start
+      - ./var/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.12-alpine
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
 
 #   searxng-core:
 #     container_name: searxng-core

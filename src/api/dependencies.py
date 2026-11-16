@@ -1,6 +1,8 @@
 import json
 from fastapi import Depends
 
+import shared.environment as env
+from infrastructure.cache.client import BaseCacheClient, redis_client
 from infrastructure.database.client import DatabaseClient, db_client
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
 from infrastructure.checkpointer.client import get_checkpointer as _get_checkpointer
@@ -25,3 +27,6 @@ def get_mcp_config():
     with open ("mcp_config.json", "r") as fp:
         mcp_config:dict[str,dict] = json.load(fp)
     return mcp_config
+
+def get_cache() -> BaseCacheClient:
+    return redis_client

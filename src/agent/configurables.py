@@ -11,6 +11,7 @@ from mcp import ClientSession
 from agent.schemas import MCPSkill
 from shared.environment import MAX_TOOL_RETRY
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
+from infrastructure.cache.client import BaseCacheClient
 
 
 class ChatModels(TypedDict):
@@ -38,6 +39,7 @@ class Configuration(TypedDict):
   embedding_func: Embeddings
   compressor: BaseDocumentCompressor
   documents_repo: DocumentsRepository
+  cache: BaseCacheClient
 
 
 def get_runtime_mcp_client(runnable: RunnableConfig) -> MultiServerMCPClient | None:
@@ -78,4 +80,9 @@ def get_runtime_model(runnable: RunnableConfig, speed: Literal['FAST', 'BALANCED
     model = cast(BaseChatModel, model.bind_tools(tools))
 
   return model
-  
+
+def get_runtime_cache(runnable: RunnableConfig) -> BaseCacheClient:
+  instance = runnable.get('configurable').get('cache', None)
+  if not instance:
+    raise ValueError("BaseCacheClient instance is required.")
+  return instance

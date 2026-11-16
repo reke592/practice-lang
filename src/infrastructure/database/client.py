@@ -42,7 +42,6 @@ class DatabaseClient:
   
   async def connect(self):
     if not self.pool:
-      _logger.info("initializing...")
       self.pool = AsyncConnectionPool(
         conninfo=DB_CONFIG,
         min_size=2,
@@ -52,6 +51,7 @@ class DatabaseClient:
       )
       # ensure pool is ready
       await self.pool.open()
+      _logger.info("connected.")
   
   async def disconnect(self):
     if self.pool:
