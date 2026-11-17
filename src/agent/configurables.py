@@ -29,6 +29,7 @@ class ChatModels(TypedDict):
 class Configuration(TypedDict):
   """A dictionary that holds runtime context information for a Runnable."""
   thread_id: str
+  run_id: str
   mcp_client: MultiServerMCPClient | None
   mcp_session: ClientSession | None
   mcp_tools: List[BaseTool] | None

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import redis.asyncio as redis
 import shared.environment as env
 from shared.errors import CancellationError
@@ -5,6 +7,8 @@ from shared.errors import CancellationError
 from shared.logger import getLogger
 
 _logger = getLogger(__name__)
+
+type ExpiryT = int | timedelta
 
 class BaseCacheClient:
   async def connect(self):
@@ -19,7 +23,7 @@ class BaseCacheClient:
     """get cached value"""
     raise NotImplementedError()
   
-  async def set(self, key: str, value: str):
+  async def set(self, key: str, value: str, ex: ExpiryT | None):
     """set cache value"""
     raise NotImplementedError()
 
@@ -29,7 +33,8 @@ class BaseCacheClient:
 
   async def set_cancellation(self, value: str):
     """set a cancellation token in cache"""
-    self.set(f"cancel:{value}")
+    token = f"abort:{value}"
+    await self.set(token, "1", timedelta(minutes=3))
 
   async def check_cancellation(self, value: str):
     """
@@ -37,8 +42,9 @@ class BaseCacheClient:
 
     raise CancellationError
     """
-    if await self.get(value):
-      await self.delete(value)
+    token = f"abort:{value}"
+    if await self.get(token):
+      await self.delete(token)
       raise CancellationError("Request cancelled.")
 
 
@@ -66,11 +72,11 @@ class RedisClient(BaseCacheClient):
   async def get(self, key: str):
     return await self.client.get(name=key)
 
-  async def set(self, key: str, value: str):
-    return await self.client.set(name=key, value=value)
+  async def set(self, key: str, value: str, ex: ExpiryT | None):
+    return await self.client.set(name=key, value=value, ex=ex)
 
   async def delete(self, *keys: str):
-    return await self.client.delete(keys)
+    return await self.client.delete(*keys)
 
 
 redis_client = RedisClient(

@@ -1,5 +1,6 @@
 import json
 from typing import Callable, List
+import uuid
 import warnings
 
 from langchain.tools import BaseTool
@@ -16,13 +17,15 @@ from langfuse.langchain import CallbackHandler
 from langgraph.types import Command
 from mcp import StdioServerParameters
 
+from infrastructure.checkpointer.client import delete_turns
+from shared.errors import CancellationError
 from shared.environment import LLM_PROVIDER_MODEL, MAX_TOOL_RETRY
 from shared.logger import console
 
 from agent.chat_state import ChatState
 from utils.mcp import load_mcp_skills
 from agent.supervisor import init_graph as get_ai
-from agent.configurables import ChatModels, Configuration
+from agent.configurables import ChatModels, Configuration, get_runtime_cache
 from api.schemas.chat import ChatStreamChunk
 from infrastructure.llm.client import PROVIDERS
 from infrastructure.database.repositories.documents_repository import DocumentsRepository
@@ -54,32 +57,32 @@ def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None
     """
     if cancellation_token:
         content = json.dumps({
-            'message': message,
-            'artifacts': [],
-            'interrupt_id': None,
-            'cancellation_token': cancellation_token
+            'msg': message,
+            'art': [],
+            'int': None,
+            'ct': cancellation_token
         })
     elif not is_summary:
         content = json.dumps({
-            'message': message,
-            'artifacts': [],
-            'interrupt_id': interrupt_id,
-            'cancellation_token': None
+            'msg': message,
+            'art': [],
+            'int': interrupt_id,
+            'ct': None
         })
     else:
         parsed = json.loads(message)
         content = json.dumps({
-            'message': parsed['message'],
-            'artifacts': parsed['artifacts'],
-            'interrupt_id': interrupt_id,
-            'cancellation_token': None
+            'msg': parsed['message'],
+            'art': parsed['artifacts'],
+            'int': interrupt_id,
+            'ct': None
         })
 
     return f"data: {content}\n\n"
 
 
 def get_composite_thread_id(session_id: str):
-    return f"session:{session_id}"
+    return f"{session_id}"
 
 
 async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], session_id: str):
@@ -88,8 +91,10 @@ async def delete_chat_checkpoints(checkpointer: BaseCheckpointSaver[str], sessio
 
 
 async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSpan, interrupt_id: str | None, yield_formatter: YieldFormatter, cancellation_token: str):
+    cache = get_runtime_cache(config)
+
     # send cancellation token to frontend
-    yield_formatter("Initializing", False, None, cancellation_token)
+    yield yield_formatter("Initializing", False, None, cancellation_token)
 
     # start sending stream chunks
     async for chunk in get_ai().astream(
@@ -99,6 +104,14 @@ async def _process_request(input: dict, config: RunnableConfig, span: LangfuseSp
         subgraphs=True,
         version="v2",
     ):
+
+        # stop the process when cancellation token has been requested
+        try:
+            await cache.check_cancellation(cancellation_token)
+        except CancellationError as e:
+            await delete_turns(config.get('configurable').get('thread_id'), config.get('configurable').get('run_id'))
+            break
+
         if chunk['type'] == "updates":
             state_data = chunk['data']
             for node, state in state_data.items():
@@ -172,6 +185,7 @@ async def process_chat(
     ) as span:
         # TODO: tracing id
         trace_user_id = f"user_{user_id}"
+        run_id = str(uuid.uuid4())
 
         # Propagate trace to all child observation
         with propagate_attributes(
@@ -212,7 +226,7 @@ async def process_chat(
                     mcp_skills, mcp_skills_descriptions = await load_mcp_skills(session)
                     configurable = Configuration(
                         thread_id=composite_thread_id,
-                        # MCP and document access
+                        run_id=run_id,
                         mcp_session=session,
                         mcp_client=mcp_client,
                         mcp_tools=mcp_tools,
@@ -236,7 +250,7 @@ async def process_chat(
             else:
                 configurable = Configuration(
                     thread_id=composite_thread_id,
-                    # MCP and document access
+                    run_id=run_id,
                     mcp_session=None,
                     mcp_client=mcp_client,
                     mcp_tools=None,

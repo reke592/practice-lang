@@ -1,6 +1,7 @@
+import asyncio
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from infrastructure.cache.client import BaseCacheClient
@@ -16,7 +17,7 @@ router = APIRouter(
 )
 
 @router.post(
-    "/completions",
+    "",
     response_class=StreamingResponse,
     responses={
         200: {
@@ -24,13 +25,13 @@ router = APIRouter(
             "description": "live stream of updates. The response message is not word-by-word, You need to refresh the UI widget to display the whole paragraph.",
             "examples": [
                 """
-                "data: {"is_summary": false, "message": "initializing", "interrupt_id": "", "ctoken": "the cancellation token value to stop the current process", "artifacts": [] }"
+                "data: {"msg": "initializing", "int": "", "ct": "the cancellation token value to stop the current process", "art": [] }"
                 """.strip(),
                 """
-                "data: {"is_summary": false, "message": "thinking or interrupt message", "interrupt_id": "optional string to include in next reply when the agent interrupts for HTIL.", "ctoken": "", "artifacts": [] }"
+                "data: {"msg": "thinking or interrupt message", "int": "the interrupt id to include in next reply for Human-in-the-loop.", "ct": "", "art": [] }"
                 """.strip(),
                 """
-                "data: {"is_summary": true, "message": "the final answer", "interrupt_id": "", "ctoken": "","artifacts": [{"resource": "generated artifacts URL"}] }"
+                "data: {"msg": "the final answer", "int": "", "ct": "","art": [{"resource": "generated artifacts URL"}] }"
                 """.strip()
             ],
         }
@@ -43,13 +44,13 @@ async def chat(
     embedding_func = Depends(get_embedding_func),
     documents_repo = Depends(get_documents_repo),
     mcp_config = Depends(get_mcp_config),
-    cache: BaseCacheClient = Depends(get_cache)
+    cache: BaseCacheClient = Depends(get_cache),
 ):
-    content = process_chat(
+    data = process_chat(
         # TODO: auth session
         user_id=1,
         session_id='dev',
-        cancellation_token=f"1:chat:{uuid.uuid4()}",
+        cancellation_token=f"1.dev.{uuid.uuid4()}",
         cache=cache,
         compressor=compressor,
         embedding_func=embedding_func,
@@ -61,21 +62,13 @@ async def chat(
         interrupt_id=body.interrupt_id
     )
     
-    return StreamingResponse(content, media_type="text/event-stream")
+    return StreamingResponse(data, media_type="text/event-stream")
 
 
-@router.get(
-    "/clear",
+@router.delete(
+    "",
     description="Clear the chat history."
 )
 async def clear(checkpointer: BaseCheckpointSaver[str] = Depends(get_checkpointer)):
     await delete_chat_checkpoints(checkpointer=checkpointer, session_id='dev')
-    return "Ok"
-
-@router.post(
-    "/cancel",
-    description="Cancel the running completions process."
-)
-async def cancel_running_request(body: ChatCancelRequest, cache: BaseCacheClient = Depends(get_cache)):
-    await cache.set(body.cancellation_token, "1")
     return "Ok"

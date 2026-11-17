@@ -21,7 +21,7 @@ safe_serde = JsonPlusSerializer(
 )
 
 def get_postgre_conninfo():
-  return f"dbname={env.CHECKPOINTER_DB_NAME} user={env.CHECKPOINTER_DB_USER} password={env.CHECKPOINTER_DB_PASSWORD} host={env.CHECKPOINTER_DB_HOST} port={env.CHECKPOINTER_DB_PORT}"
+  return f"dbname={env.CHECKPOINTER_DB_NAME} user={env.CHECKPOINTER_DB_USER} password={env.CHECKPOINTER_DB_PASSWORD.get_secret_value()} host={env.CHECKPOINTER_DB_HOST} port={env.CHECKPOINTER_DB_PORT}"
 
 
 def get_checkpointer() -> BaseCheckpointSaver[str]:
@@ -55,9 +55,11 @@ async def checkpointer_setup():
     )
 
     await _checkpointer_pool.open()
-
+    async with _checkpointer_pool.connection() as conn:
+      await conn.set_autocommit(True)
+      await AsyncPostgresSaver(conn, serde=safe_serde).setup()
+    
     _checkpointer_client = AsyncPostgresSaver(_checkpointer_pool, serde=safe_serde)
-    await _checkpointer_client.setup()
     return _checkpointer_client
   
   raise ValueError(f"checkpointer type {checkpointer_type} not supported.")
@@ -81,6 +83,39 @@ async def checkpointer_close():
 
 
 async def delete_checkpoint(thread_id: str):
-  """delete a checkpoint by thread_id"""
+  """delete the entire history by thread_id"""
+  _logger.info(f"delete_checkpoint thread_id: {thread_id}")
   get_checkpointer().delete_thread(thread_id=thread_id)
-  
+
+async def delete_turns(thread_id: str, run_id: str):
+  """delete a conversation turn in history"""
+  client = get_checkpointer()
+  if isinstance(client, AsyncPostgresSaver):
+    _logger.info(f"delete_turns thread_id: {thread_id}, run_id: {run_id}")
+    async with client.conn.connection() as conn:
+      async with conn.cursor() as cur:
+        # query the checkpoint ids related to the current conversation turn
+        sql = """
+        SELECT checkpoint_id
+        FROM checkpoints
+        WHERE thread_id = %s
+          AND metadata->>'run_id' = %s
+        """
+        await cur.execute(sql, (thread_id, run_id))
+        
+        checkpoint_ids = [ row['checkpoint_id'] for row in await cur.fetchall() ]
+
+        # delete the history
+        await cur.execute("""
+        DELETE FROM checkpoints
+        WHERE thread_id = %s
+          AND checkpoint_id = ANY(%s)
+        """, (thread_id, checkpoint_ids))
+
+        await cur.execute("""
+        DELETE FROM checkpoint_writes
+        WHERE thread_id = %s
+          AND checkpoint_id = ANY(%s)
+        """, (thread_id, checkpoint_ids))
+  else:
+    _logger.warning(f"delete_turns not supported. Please clear the session history instead.")

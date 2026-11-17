@@ -10,7 +10,7 @@ from infrastructure.checkpointer.client import checkpointer_setup, checkpointer_
 
 from api.handlers.errors import AppError, app_error_handler, unhandled_error_handler
 from api.endpoints.chat import router as chat_router
-
+from api.endpoints.cancellation import router as cancellation_router
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +40,7 @@ app.add_middleware(
 )
 
 app.include_router(chat_router)
+app.include_router(cancellation_router)
 
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
