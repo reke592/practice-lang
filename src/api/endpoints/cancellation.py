@@ -11,7 +11,7 @@ router = APIRouter(
 
 @router.post(
     "",
-    description="Cancel the running process."
+    description="Use this endpoint to cancel a running process."
 )
 async def cancel_running_request(body: ChatCancelRequest, cache: BaseCacheClient = Depends(get_cache)):
     await cache.set_cancellation(body.cancellation_token)

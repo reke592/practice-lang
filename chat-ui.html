@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant</title>
+    <!-- VueJS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!-- Marked.js for Markdown rendering from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* --- Global Reset & Base Styles --- */
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5; /* Light, modern background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        /* --- Chat Container (The main card) --- */
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Deeper shadow for polish */
+            width: 95%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            overflow: hidden; /* Important for containing header/footer */
+        }
+        /* --- Header --- */
+        .chat-header {
+            padding: 18px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.4em;
+            color: #1a202c;
+        }
+        .chat-header p {
+            margin: 3px 0 0;
+            font-size: 0.9em;
+            color: #6b7280;
+        }
+        /* --- Messages Area --- */
+        .chat-messages {
+            flex-grow: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px; /* Increased gap for better visual separation */
+            background-color: #f9fafb; /* Slightly off-white background for chat area */
+        }
+        /* --- Message Bubble Styling --- */
+        .message-bubble {
+            padding: 12px 18px;
+            border-radius: 20px;
+            max-width: 85%;
+            line-height: 1.5;
+            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        /* User Message (Right aligned, primary color) */
+        .user-message {
+            background-color: #007bff; /* Branded Blue */
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 10px; /* More rounded corner */
+        }
+        /* Agent Message (Left aligned, neutral color) */
+        .agent-message {
+            background-color: #e2e8f0; /* Light Slate Gray */
+            color: #1a202c;
+            align-self: flex-start;
+            border-bottom-left-radius: 10px; /* More rounded corner */
+        }
+        /* --- Input Area --- */
+        .input-area {
+            padding: 20px 25px;
+            border-top: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        textarea {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 25px; /* Highly rounded */
+            resize: none;
+            font-size: 16px;
+            min-height: 48px; /* Slightly taller default */
+            max-height: 200px; /* Increased max height */
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+        /* --- Buttons --- */
+        button {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.2s, opacity 0.2s;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+        }
+        #submitBtn {
+            background-color: #10b981; /* Emerald Green - Success color */
+            color: white;
+        }
+        #submitBtn:hover:not(:disabled) {
+            background-color: #05966b;
+        }
+        #submitBtn:disabled {
+            background-color: #a5d6a7;
+            cursor: not-allowed;
+        }
+        #cancelBtn {
+            background-color: #ef4444; /* Red - Danger color */
+            color: white;
+            display: none;
+        }
+        #cancelBtn:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+        /* --- State Indicators --- */
+        .thinking-indicator {
+            padding: 12px 18px;
+            background-color: #fffbe6; /* Light Yellow */
+            border: 1px solid #fde68a; /* Light Yellow Border */
+            color: #92400e; /* Darker text for contrast */
+            border-radius: 20px;
+            max-width: 85%;
+            align-self: flex-start;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="chat-body">
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h3>AI Assistant Chat</h3>
+        <p>Powered by Advanced Agent Model</p>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <!-- Initial welcome message -->
+        <div class="message-bubble agent-message">
+            Hello! I'm here to help you with your tasks. How can I assist you today?
+        </div>
+    </div>
+
+    <div class="input-area">
+        <textarea id="userInput" v-model="userInput" placeholder="Ask me anything..." @input="autoResizeTextarea"></textarea>
+        <button id="submitBtn" @click="submitMessage" :disabled="isProcessing">Send</button>
+        <button id="cancelBtn" @click="cancelProcess" :disabled="!isProcessing">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // Initialize marked.js for Markdown rendering
+    marked.setOptions({
+        gfm: true,
+        breaks: true
+    });
+
+    new Vue({
+        el: '.chat-container',
+        data: {
+            userInput: '',
+            isProcessing: false,
+            isStreaming: false, // New state flag
+            cancellationToken: null,
+            // Vue instance for the chat messages container
+            chatMessages: null 
+        },
+        mounted() {
+            this.chatMessages = document.getElementById('chatMessages');
+            // Initial setup for textarea resizing
+            this.autoResizeTextarea();
+            
+            // Set up event listeners for buttons
+            document.getElementById('submitBtn').addEventListener('click', this.submitMessage);
+            document.getElementById('cancelBtn').addEventListener('click', this.cancelProcess);
+        },
+        methods: {
+            // UX Improvement: Auto-resize textarea based on content
+            autoResizeTextarea() {
+                const textarea = document.getElementById('userInput');
+                if (textarea) {
+                    // Reset height to recalculate scroll height correctly
+                    textarea.style.height = 'auto';
+                    // Set the new height to match the scroll height
+                    textarea.style.height = (textarea.scrollHeight) + 'px';
+                }
+            },
+            
+            // Function to append a message bubble to the chat window
+            appendMessage(text, senderClass) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message-bubble ${senderClass}`;
+                
+                // Render Markdown only for final agent messages
+                if (senderClass === 'agent-message' && !this.isStreaming) {
+                    messageDiv.innerHTML = marked.parse(text);
+                } else {
+                    // For user messages or non-final agent messages, use textContent
+                    messageDiv.textContent = text;
+                }
+                
+                this.chatMessages.appendChild(messageDiv);
+                // Scroll to bottom smoothly
+                this.chatMessages.scrollTo({ top: this.chatMessages.scrollHeight, behavior: 'smooth' });
+                return messageDiv;
+            },
+
+            async submitMessage() {
+                const textareaElement = document.getElementById('userInput');
+                const messageToSend = textareaElement.value.trim();
+
+                if (!messageToSend || this.isProcessing) return;
+
+                // 1. Display user message
+                this.appendMessage(messageToSend, 'user-message');
+                
+                // 2. UI State Change: Disable input, show cancel button
+                this.isProcessing = true;
+                this.isStreaming = true; // Set streaming state
+                
+                // Clear the textarea value and trigger resize
+                textareaElement.value = ''; 
+                this.autoResizeTextarea();
+                
+                // Update button states
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+                
+                // 3. Start Streaming Simulation/API Call
+                await this.streamChat(messageToSend);
+            },
+
+            async streamChat(message) {
+                const API_URL = 'http://127.0.0.1:8000/chat';
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                const body = JSON.stringify({
+                    message: message,
+                    interrupt_id: ""
+                });
+
+                // Clear previous thoughts/streaming content
+                this.clearThoughts();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: headers,
+                        body: body
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let done = false;
+                    let buffer = '';
+
+                    // --- Streaming Logic ---
+                    while (!done) {
+                        const { value, done: readerDone } = await reader.read();
+                        done = readerDone;
+                        if (value) {
+                            buffer += decoder.decode(value, { stream: true });
+                        }
+                        
+                        // Process chunks separated by newlines/data:
+                        const chunks = buffer.split('\n\n');
+                        buffer = chunks.pop(); // Keep the last potentially incomplete chunk
+
+                        for (const chunk of chunks) {
+                            if (chunk.trim() === '') continue;
+                            
+                            // Expecting 'data: {json}' format
+                            const dataString = chunk.trim().replace(/^data:\s*/, '');
+                            if (!dataString) continue;
+
+                            try {
+                                const data = JSON.parse(dataString);
+                                
+                                if (data.done === false) {
+                                    // Streaming/Thinking message
+                                    this.displayStreamingMessage(data.msg || "Processing...");
+                                } else if (data.done === true) {
+                                    // Final message received
+                                    this.displayFinalMessage(data.msg || "No final message received.");
+                                    break; // Exit loop after final message
+                                }
+                            } catch (e) {
+                                console.error("Error parsing chunk:", e, "Chunk:", chunk);
+                            }
+                        }
+                    }
+                    
+                    // Handle case where stream ends without explicit 'done: true'
+                    if (!done && !this.isFinalized) {
+                        this.displayFinalMessage("Connection closed or stream ended unexpectedly.");
+                    }
+
+                } catch (error) {
+                    console.error("Chat streaming failed:", error);
+                    this.displayFinalMessage(`Error connecting to the agent: ${error.message}. Please ensure the server is running at ${API_URL}.`);
+                } finally {
+                    // 4. Cleanup UI State
+                    this.isProcessing = false;
+                    this.isStreaming = false;
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('cancelBtn').style.display = 'none';
+                    this.cancellationToken = null;
+                    this.chatMessages.scrollTo({ top: this.chatMessages.scrollHeight, behavior: 'smooth' });
+                }
+            },
+
+            displayStreamingMessage(msg) {
+                // Display intermediate thoughts in the dedicated 'thoughts' div block
+                const thoughtsDiv = document.createElement('div');
+                thoughtsDiv.className = 'thinking-indicator';
+                thoughtsDiv.textContent = msg;
+                this.chatMessages.appendChild(thoughtsDiv);
+                this.chatMessages.scrollTo({ top: this.chatMessages.scrollHeight, behavior: 'smooth' });
+            },
+
+            displayFinalMessage(finalMessage) {
+                // 1. Clear thoughts div
+                const thoughts = this.chatMessages.querySelectorAll('.thinking-indicator');
+                thoughts.forEach(el => el.remove());
+
+                // 2. Display final message in Markdown format
+                this.appendMessage(finalMessage, 'agent-message');
+                this.isFinalized = true;
+            },
+            
+            clearThoughts() {
+                // Clear any existing thoughts/streaming indicators
+                const thoughts = this.chatMessages.querySelectorAll('.thinking-indicator');
+                thoughts.forEach(el => el.remove());
+            },
+
+            cancelProcess() {
+                if (!this.isProcessing || !this.cancellationToken) {
+                    alert("No active process to cancel.");
+                    return;
+                }
+                
+                // In a real scenario, you would call a /cancel endpoint here using this.cancellationToken
+                console.log(`Attempting to cancel process with token: ${this.cancellationToken}`);
+                alert("Cancellation signal sent (Simulated). In a real app, this would call the /cancel endpoint.");
+                
+                // Reset UI state as if the process was cancelled
+                this.isProcessing = false;
+                this.isStreaming = false;
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('cancelBtn').style.display = 'none';
+                this.cancellationToken = null;
+            }
+        },
+        watch: {
+            userInput() {
+                // Watcher to ensure auto-resize happens when Vue updates the model
+                this.autoResizeTextarea();
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

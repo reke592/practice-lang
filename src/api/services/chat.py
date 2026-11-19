@@ -47,16 +47,19 @@ langfuse_handler = CallbackHandler()
 
 type YieldFormatter = Callable[[str, bool, str | None, str | None], ChatStreamChunk]
 
-def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None, cancellation_token: str | None):
-    """
-    return a string data for SSE.
+sse_docs = """
+- done: boolean, marks the final response
+- msg: string, message content
+- art: array, generated artifacts url
+- int: string, for HITL
+- ct: string, the cancellation token to stop the process
+""".strip()
 
-    - message: string
-    - artifacts: array
-    - interrupt_id: string for HITL
-    """
+def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None, cancellation_token: str | None):
+    """return a string data for SSE."""
     if cancellation_token:
         content = json.dumps({
+            'done': is_summary,
             'msg': message,
             'art': [],
             'int': None,
@@ -64,6 +67,7 @@ def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None
         })
     elif not is_summary:
         content = json.dumps({
+            'done': is_summary,
             'msg': message,
             'art': [],
             'int': interrupt_id,
@@ -72,6 +76,7 @@ def sse_yield_formatter(message: str, is_summary: bool, interrupt_id: str | None
     else:
         parsed = json.loads(message)
         content = json.dumps({
+            'done': is_summary,
             'msg': parsed['message'],
             'art': parsed['artifacts'],
             'int': interrupt_id,
