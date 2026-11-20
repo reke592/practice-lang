@@ -305,13 +305,6 @@ async def preprocess(state: ChatState, config: RunnableConfig):
 async def process_artifacts(state: ChatState, config: RunnableConfig):
   """Process response artifacts"""
 
-  # let the orchestrator response reach the user interface
-  if not state.get('worker_results', []):
-    return {
-       'next': '__end__',
-       'messages': []
-    }
-
   # replace override the orchestrator content using the concatenated worker results to preserve the original worker agent response
   artifacts = []
   last_message = state['messages'][-1]
